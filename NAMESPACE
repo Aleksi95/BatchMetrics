@@ -1,0 +1,16 @@
+exportPattern("^[[:alpha:]]+")
+importFrom("grDevices", "dev.off", "pdf")
+importFrom("stats", "as.dist", "chisq.test", "cor", "cutree",
+           "density", "dist", "hclust", "kmeans", "model.matrix", "sd",
+           "setNames", "weighted.mean")
+importFrom("utils", "write.csv2")
+importFrom("sva", "ComBat")
+importFrom("Harman", "harman", "reconstructData")
+importFrom("limma", "removeBatchEffect")
+importFrom("ggplot2", "ggplot", "geom_boxplot", "aes", "ggtitle")
+importFrom("reshape2", "melt")
+importFrom("FNN", "get.knn", "KL.dist", "KL.divergence")
+importFrom("kBET", "kBET")
+importFrom("invgamma", "rinvgamma")
+
+

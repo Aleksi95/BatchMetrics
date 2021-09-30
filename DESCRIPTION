@@ -1,0 +1,26 @@
+Package: BatchMetrics
+Type: Package
+Title: Evaluation of batch correction
+Version: 0.1.0
+Author: Aleksi Laiho, Petri Toronen
+Maintainer: Aleksi Laiho <aleksi.laiho@helsinki.fi>
+Description: Compiles evaluation methods for batch correction models, such as 'ComBat' and 'Harman' as well as other additional batch correction methods. Includes evaluation metrics and wrapper functions for running metrics on multiple datasets. 
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports:
+  ggplot2,
+  FNN,
+  kBET,
+  pspearman,
+  sva,
+  Harman,
+  limma,
+  stats,
+  utils,
+  reshape2,
+  grDevices,
+  invgamma
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
