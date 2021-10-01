@@ -24,5 +24,11 @@ test_that("error message finite values", {
   expect_error(QC_bootstrap(list(data1), biol.groups = groups, batches = batch), "Error: datasets should contain only finite values")
 })
 
+test_that("datalist and method names length matches", {
+  data1 = matrix(rnorm(10*100,mean=0,sd=1), ncol=10, nrow=100)
+  batch  = sample(1:2, size = 10, replace = TRUE)
+  groups = sample(1:2, size = 10, replace = TRUE)
+  expect_error(QC_bootstrap(list(data1), biol.groups = groups, batches = batch, method_names = c("1", "2")), "The list of method names has to be of the same length as the data list")
+})
 
 

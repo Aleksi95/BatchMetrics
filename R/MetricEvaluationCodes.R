@@ -29,6 +29,7 @@ QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, me
   }
 
 
+
   ### the datasets should have EQUAL NUMBER OF ROWS and contain no NA values
   x_row = nrow(data_list[[1]])
   for(d in data_list){
@@ -46,7 +47,15 @@ QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, me
   n = length(data_list)
 
   if(is.null(method_names)){
-    method_names = paste("method", as.character(1:n))
+    if(!is.null(names(data_list))){
+      method_names = names(data_list)
+    } else {
+      method_names = paste("method", as.character(1:n))
+    }
+  } else {
+    if(length(data_list) != length(method_names)){
+      stop("The list of method names has to be of the same length as the data list")
+    }
   }
 
 
