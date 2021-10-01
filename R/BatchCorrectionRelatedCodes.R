@@ -342,7 +342,7 @@ ClusterCenter = function(data, batch, mean.only = FALSE, p = 1){
 BatchCorr2 = function(dataIn, batch1, batch2, samples = NULL, subset1 = NULL, subset2 = NULL, p = 1, method = "combat"){
   method = tolower(method)
   if(!is.null(subset1)){
-    if(method != "harman" | method != "combat"){
+    if(!(method == "harman" | method == "combat")){
       stop("Error: subset correction defined only for combat and harman")
     }
     corr1 = BatchCorr_WithSubset(dataIn, batch1, subset1, p, SampleTypes = samples, CorrMethod = method)
