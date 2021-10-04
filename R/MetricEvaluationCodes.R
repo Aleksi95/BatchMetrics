@@ -249,7 +249,7 @@ boxPlot = function(res_data, title = "metric", method_class){
   df = rbind(df[1,], df[-1,][order(df[-1,]$method_class),])
 
   df = melt(df, id.vars = c("corr_method", "method_class"), variable.name = 'run')
-  p = ggplot(df, aes(x = df$corr_method, y = df$value, fill = method_class)) + geom_boxplot() + ggtitle(label = title)
+  p = ggplot(df, aes(x = corr_method, y = value, fill = method_class)) + geom_boxplot() + ggtitle(label = title)
 
 
   return(p)
@@ -257,8 +257,11 @@ boxPlot = function(res_data, title = "metric", method_class){
 
 boxPlots = function(object){
 
-  reslist = object$reslist
+  reslist = object$results
   method_class = object$method_class
+  if(is.null(method_class)){
+    method_class = object$means$method_class
+  }
   metrics = names(reslist[[1]])
 
   title.ind = 1
