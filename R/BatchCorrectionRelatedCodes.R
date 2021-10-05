@@ -8,6 +8,8 @@
 #'@importFrom Harman reconstructData
 #'@importFrom stats kmeans
 #'@importFrom stats sd
+#'@importFrom limma plotMDS
+#'@importFrom grDevices pdf
 
 
 
@@ -388,5 +390,67 @@ BatchCorr2 = function(dataIn, batch1, batch2, samples = NULL, subset1 = NULL, su
   }
   return(corr2)
 }
+
+###Functions for plotting data
+
+plotMDS_andLegend <- function(data, sample_types, LegendChoice="bottomleft",
+                              SelectScores = NULL, MaxNum = 500, UseMax=TRUE, ...){
+  # Create MDS plot
+  # Define colors for sample types
+  # Add legend to plot
+  # LegendChoice selects where the legend goes
+  # SelectScores = Scores used to select the used genes
+  #
+
+  #lls()
+  if(!is.null(SelectScores)){
+    if(length(SelectScores) != nrow(data)){
+      stop('data and SelectScores do not match each other')
+    }
+    if(UseMax){
+      data = data[order(SelectScores, decreasing=TRUE)[1:MaxNum],]
+    } else{
+      data = data[order(SelectScores)[1:MaxNum],]
+    }
+  }
+
+
+  UniqNames = unique(sample_types)
+  Matches = match(NamesIn, UniqNames)
+  NumbersTmp = list(Numbering=Matches, Keys=UniqNames)
+
+  ColorNames = c('red','green','blue','black','gray','yellow',
+                 'magenta','cyan','orange','brown','blueviolet',
+                 'purple','pink','maroon','olivedrab','lightsteelblue',
+                 'deeppink','palegreen','red4','green4','blue4')
+  plotMDS(data, col=ColorNames[NumbersTmp[[1]]], ...)
+
+  legend(LegendChoice, legend=NumbersTmp[[2]], fill=ColorNames[1:length(NumbersTmp[[2]])])
+
+}
+
+DoManyMDS_plots <- function(data, SampleTypeTable, ColVector, SelectScores = NULL, toPDF = FALSE, filename = NULL, ...){
+
+  # This is wrapper for printing many MDS plots
+  # in same document
+
+  if(is.null(SelectScores)){
+    SelectScores  = apply(data, 1, var)
+  }
+  if(toPDF){
+    filename = paste(filename, "MDSplot.pdf", sep = "_")
+    pdf(file=filename,paper="a4r", height=9, width=11.5)
+  }
+  for(k in 1:length(ColVector)){
+    plotMDS_andLegend(data, SampleTypeTable[,ColVector[k]], SelectScores = SelectScores, ...)
+  }
+  if(toPDF){
+    dev.off()
+  }
+
+}
+
+
+
 
 
