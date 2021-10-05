@@ -329,7 +329,7 @@ getRanks = function(metrics_list, type = c("bio", "batch", "ratio")){
 
 diluteSeries = function(Data, batch1, batch2 = NULL, corrections1, corrections2 = NULL, perc = seq(0,1, by = 0.1)){
   if(is.null(batch2)){
-    lapply(perc, function(elem) ApplyBatchCorrections(Data, batch1, corrections1))
+    lapply(perc, function(elem) ApplyBatchCorrections(Data, batch1, corrections1, p = elem))
   } else {
     lapply(sqrt(perc), function(elem) ApplyBatchCorrections(ApplyBatchCorrections(Data,
                                                                                   batch1,
