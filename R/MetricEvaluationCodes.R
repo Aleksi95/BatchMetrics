@@ -236,6 +236,7 @@ QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, me
 
 
 ###functions for plotting results
+requireNamespace("reshape2")
 
 
 boxPlot = function(res_data, title = "metric", method_class){

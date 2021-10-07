@@ -8,6 +8,7 @@
 #'@importFrom Harman reconstructData
 #'@importFrom stats kmeans
 #'@importFrom stats sd
+#'@importFrom stats var
 #'@importFrom limma plotMDS
 #'@importFrom grDevices pdf
 
@@ -416,7 +417,7 @@ plotMDS_andLegend <- function(data, sample_types, LegendChoice="bottomleft",
 
 
   UniqNames = unique(sample_types)
-  Matches = match(NamesIn, UniqNames)
+  Matches = match(sample_types, UniqNames)
   NumbersTmp = list(Numbering=Matches, Keys=UniqNames)
 
   ColorNames = c('red','green','blue','black','gray','yellow',

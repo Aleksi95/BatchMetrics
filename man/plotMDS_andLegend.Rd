@@ -10,8 +10,12 @@ Multidimensional scaling plot with legend
 Plots the gene expression dataset with the given sample types and batch effects highlighted in the legend. Uses the \code{\link{limma}} package for the multidimensional scaling.
 }
 \usage{
-plotMDS_andLegend(data, sample_types, LegendChoice="bottomleft",
-                              SelectScores = NULL, MaxNum = 500, UseMax=TRUE, ...)
+plotMDS_andLegend(data,
+sample_types,
+LegendChoice="bottomleft",
+SelectScores = NULL,
+MaxNum = 500,
+UseMax=TRUE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -69,6 +73,7 @@ Cox, T.F.; Cox, M.A.A. (2001). Multidimensional Scaling. Chapman and Hall
 \code{\link{DoManyMDS_plots}}
 }
 \examples{
+library(limma)
 #Generate dataset and batches
 
 Data = matrix(rnorm(100*1000,mean=0,sd=1), ncol=100, nrow=1000)
@@ -84,7 +89,7 @@ CorrData = BatchCorr_WithSubset(Data, batches, Subset, p = 1, SampleTypes=NULL,
 
 #Plot results
 plotMDS_andLegend(Data, batches, LegendChoice="bottomleft",
-                              SelectScores = NULL, MaxNum = 500, UseMax=TRUE, ...)
+                              SelectScores = NULL, MaxNum = 500, UseMax=TRUE)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory (show via RShowDoc("KEYWORDS")):

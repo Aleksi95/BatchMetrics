@@ -10,7 +10,13 @@ Multiple multidimensional scaling plots
 Produces multiple multidimensional scaling plots (see \code{\link{plotMDS_andLegend}}), given the selected columns of the sample type table as legend.
 }
 \usage{
-DoManyMDS_plots(data, SampleTypeTable, ColVector, SelectScores = NULL, toPDF = FALSE, filename = NULL, ...)
+DoManyMDS_plots(data,
+SampleTypeTable,
+ColVector,
+SelectScores = NULL,
+toPDF = FALSE,
+filename = NULL,
+...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -29,6 +35,7 @@ The vector denoting the columns of SampleTypeTable which to select.
 
 \item{SelectScores}{
 Vector of scores the order of which the genes should be selected by (see \code{\link{plotMDS_andLegend}}).
+}
 
 \item{toPDF}{
 Logical whether to print the plot as a PDF file.
@@ -42,7 +49,7 @@ The beginning string of the filename of the pdf. The final filename will be of t
 Additional arguments
 }
 
-}
+
 }
 \details{
 %%  ~~ If necessary, more details than the description above ~~
@@ -73,6 +80,7 @@ Cox, T.F.; Cox, M.A.A. (2001). Multidimensional Scaling. Chapman and Hall
 \code{\link{plotMDS_andLegend}}
 }
 \examples{
+library(limma)
 #Generate dataset and batches
 
 Data = matrix(rnorm(100*1000,mean=0,sd=1), ncol=100, nrow=1000)
@@ -87,7 +95,8 @@ CorrData = BatchCorr_WithSubset(Data, batches, Subset, p = 1, SampleTypes=sample
                                  CorrMethod='combat', mean.only=FALSE)
 
 #Plot results
-DoManyMDS_plots(Data, SampleTypeTable = data.frame(batches, sample.types), ColVector = c(1,2), SelectScores = NULL, toPDF = FALSE, filename = NULL, ...)
+DoManyMDS_plots(Data, SampleTypeTable = data.frame(batches, sampletypes),
+ColVector = c(1,2), SelectScores = NULL, toPDF = FALSE, filename = NULL)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory (show via RShowDoc("KEYWORDS")):
