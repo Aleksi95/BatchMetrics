@@ -504,6 +504,23 @@ diluteSeries = function(Data, batch, groups = NULL, corrData = NULL, corrData2 =
   }
 }
 
+ADS_A = function(data, samples, p = 1){
+  sampleInds = lapply(unique(samples), function(i) which(samples == i))
+  #means = sapply(sampleInds, function(I) data[,I] - rowMeans(data[,I]))
+  for(I in sampleInds){
+    data[,I] = (data[,I] - p*rowMeans(data[,I]))
+  }
+  #colnames(means) = unique(samples)
+  return(data)
+}
+
+diluteSeries2 = function(data, samples, perc = seq(0,1, by = 0.1)){
+  
+  lapply(perc, function(p) ADS_A(data, samples, p = p))
+}
+
+
+
 #Generate datasets with variation, with deseq-normalization and batch-correction
 
 QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F-score", "Davies-Bouldin", "kNN", "mindist", "kldist"),
