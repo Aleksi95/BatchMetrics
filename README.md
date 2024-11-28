@@ -1,6 +1,16 @@
 # BatchMetrics
 Package for evaluating batch correction methods in R
 
+# Installation
+Install the package using devtools
+
+```{r}
+devtools::install_github("Aleksi95/BatchMetrics")
+
+library(BatchMetrics)
+```
+
+
 # Usage
 
 Load in the dataset of RNA-Seq count data
