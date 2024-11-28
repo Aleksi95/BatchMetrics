@@ -176,8 +176,8 @@ QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, me
       if(m == "F-score"){
 
         ###Compute F-scores for biol. and batch signal
-        fbatch = getFscores(dists, batches, method = Fscore_method)
-        fbio = getFscores(dists, biol.groups, method = Fscore_method)
+        fbatch = getFscores(dists, batches)
+        fbio = getFscores(dists, biol.groups)
         tmp_bio[[m]] = rbind(tmp_bio[[m]], fbio)
         tmp_batch[[m]] = rbind(tmp_batch[[m]], fbatch)
         tmp_ratio[[m]] = rbind(tmp_ratio[[m]], fbio/fbatch)
@@ -592,8 +592,8 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
         }
 
         ###Compute F-scores for biol. and batch signal
-        fbatch = getFscores(dists, batches, scaled = scaledF)
-        fbio = getFscores(dists, biol.groups, scaled = scaledF)
+        fbatch = getFscores(dists, batches)
+        fbio = getFscores(dists, biol.groups)
         tmp_bio[[m]] = rbind(tmp_bio[[m]], fbio)
         tmp_batch[[m]] = rbind(tmp_batch[[m]], fbatch)
         tmp_ratio[[m]] = rbind(tmp_ratio[[m]], fbio/fbatch)
