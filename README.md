@@ -5,10 +5,6 @@ Package for evaluating batch correction methods in R
 
 Load in the dataset of RNA-Seq count data
 
-```{r}
-#data(counts)
-load("/data/Data.RData")
-```
 
 ```{r}
 str(counts)
