@@ -97,7 +97,7 @@ runMetrics = function(data, sample_types, batch, y = NULL,distMatrix=NULL, metri
   return(tmp)
 }
 
-QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, metrics = c("F-score", "Davies-Bouldin", "kBET", "kNN", "KL-divergence", "Silhouette", "mindist"), dist_method = "pearson", Fscore_method = "scaled", iters = 50, savefile = FALSE, filename = "evaluations.csv", plot = FALSE, zeroRows = FALSE, y = NULL){
+QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, metrics = c("F-score", "Davies-Bouldin", "kBET", "kNN", "KL-divergence", "Silhouette", "mindist"), dist_method = "pearson", iters = 50, savefile = FALSE, filename = "evaluations.csv", plot = FALSE, zeroRows = FALSE, y = NULL){
 
   if(!is.list(data_list)){
     data_list = list(data_list)
