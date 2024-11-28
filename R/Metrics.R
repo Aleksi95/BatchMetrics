@@ -1,4 +1,4 @@
-#
+
 # You can learn more about package authoring with RStudio at:
 #
 #   http://r-pkgs.had.co.nz/
@@ -21,6 +21,7 @@
 #'@importFrom stats weighted.mean
 #'@importFrom FNN KL.dist
 #'@importFrom FNN KL.divergence
+#'@importFrom limma plotMDS
 
 ###BatchMetrics package 2021
 #
@@ -29,7 +30,18 @@
 #
 #Functions to measure group separation in batch correction and metrics to measure batch correction
 
+#convert lower triangle matrices to symmetric
+toSymmetric = function(dist, lower = TRUE){
+  if(lower){
+    dist[upper.tri(dist)] <- t(dist)[upper.tri(t(dist))]
+  } else {
+    dist[lower.tri(dist)] <- t(dist)[lower.tri(t(dist))]
+  }
+  return(dist)
 
+}
+
+requireNamespace("limma")
 
 GetDistMatrix <- function(Data, dist_method = "pearson"){
 
@@ -57,6 +69,11 @@ GetDistMatrix <- function(Data, dist_method = "pearson"){
   else if(dist_method == "pearson" | dist_method == "spearman"){
     #print(paste(dist_method,"distance used"))
     DistMatrix <- (1-cor(Data, method = dist_method))
+  } else if(dist_method == "MDS"){
+    #select 500 top genes with highest log-fold changes to compute dist matrix
+    #counter curse of dimensionality
+    DistMatrix = toSymmetric(plotMDS(Data, plot = FALSE)$distance.matrix)
+
   }
   # Do we want include other methods?
   #
@@ -199,37 +216,19 @@ getSilhouettes = function(dist, sample_types){
 ##INPUT: Distance matrix, sample type vector containing labels of each biological group of interest
 ##OUTPUT: the  f-score for cluster separation (Numeric)
 
-getFscore = function(dist, sample_types, method = "scaled", quantile = 0.5){
-  disttype = SeparateDistTypes(sample_types)
+getFscore = function(dist, sample_types, scaled = TRUE, quantile = 0.5){
 
-  if(method == "stratified"){
-  f = 1
-  counter = 1
-  for(t in unique(sample_types)){
-    I = sample_types == t
-
-    BetweenClusts = mean(dist[-I,I])
-    WithinClust = mean(dist[disttype == counter])
-    f = f*(BetweenClusts/WithinClust)
-    #print(f)
-    counter = counter + 1
-  }
-
-  return(f)
-
-  }else{
+  if(scaled == TRUE){
     dist = apply(dist, 1, function(x) x/(quantile(x, quantile)))
-    DistTypeMatrix = disttype
-
-
-    BetweenClust = sum(dist[DistTypeMatrix == 0])
-    WithinClust = sum(dist[DistTypeMatrix > 0])
-
-    return(BetweenClust/WithinClust)
-
-
-
   }
+
+  DistTypeMatrix = SeparateDistTypes(sample_types)
+
+
+  BetweenClust = sum(dist[DistTypeMatrix == 0])
+  WithinClust = sum(dist[DistTypeMatrix > 0])
+
+  return(BetweenClust/WithinClust)
 
 
 }
@@ -241,7 +240,7 @@ getFscore = function(dist, sample_types, method = "scaled", quantile = 0.5){
 
 ##OUTPUT: vector of f-scores for each dataset
 
-getFscores = function(dists, sample_types, method = "scaled", quantile = 0.5){
+getFscores = function(dists, sample_types, scaled = TRUE, quantile = 0.5){
   if(!is.list(dists)){
     dists = list(dists)
   }
@@ -259,7 +258,7 @@ getFscores = function(dists, sample_types, method = "scaled", quantile = 0.5){
       quant = quantile
     }
 
-    fscore = getFscore(dists[[k]], samples, method = method, quantile = quant)
+    fscore = getFscore(dists[[k]], samples, scaled = scaled, quantile = quant)
 
     f_scores = c(f_scores, fscore)
   }
@@ -458,6 +457,175 @@ getMinDists = function(dists, batch){
 
   sapply(dists, function(d) avgMinDist(d, batch))
 }
+
+
+EffectSizeEstimate = function(data, sample_types, dim.reduct.method = "MDS"){
+  if(dim.reduct.method == "MDS"){
+    MDS = limma::plotMDS(data, plot = FALSE)
+    y = (MDS$x + MDS$y)/2
+  } else if (dim.reduct.method == "PCA") {
+    pca = prcomp(data)
+    y = (pca$rotation[,1] + pca$rotation[,2])/2
+  }
+  model = lm(y~sample_types)
+  sum = summary(model)
+  return(list(coef = abs(sum$coefficients[2,1]), pval = sum$coefficients[2,4], R2 = sum$r.squared))
+}
+
+gPCA.batchdetect <-
+  function(x,batch,filt=NULL,nperm=1000,center=FALSE,scaleY=FALSE,seed=NULL){
+
+    # x : n x p matrix of genomic data
+    # batch : length n vector indicating batch for each sample
+    # filt : number of features to retain after filtering
+    # nperm : number of permutations to perform during the permutation test
+    # x2.imp : optional centered data matrix with imputed missing values
+    # center : logical, is the data centered?
+    # scaleY : should Y be scaled based on number of samples in each batch?
+    # seed : ability to set the seed for random sampling
+    if(!is.null(seed)){set.seed(seed)}
+
+    # Permute batch:
+    permute<-matrix(NA,ncol=length(batch),nrow=50000)
+    for (j in 1:50000) {permute[j,]<-sample(batch,replace=FALSE)}
+    samp<-sample(1:dim(permute)[1],nperm,replace=FALSE)
+    permute.samp<-permute[samp,]
+
+    # Center data:
+    if(center==FALSE) {
+      x2<-scale(x,center=T,scale=F)
+    } else {
+      x2<-x
+    }
+
+    # Test for missing values, impute if missing:
+    # (save imputed x2 in working directory so don't have to run it again)
+    if(sum(is.na(x))>0) {
+      missing<-readline(prompt="Missing values detected. Continue with mean value imputation? (Note this may take a very long time, but it will automatically save in your working dir so you don't have to ever run it again.) [y/n] ")
+      if (substr(missing,1,1)=="n") {
+        stop("The PC cannot be calculated with missing values.")
+      } else {
+        x2.imp<-ifelse(is.na(x2),rowMeans(x2,na.rm=TRUE),x2)
+        save(x2.imp,"x2.imputed.RData")
+      }
+    } else {
+      x2.imp<-x2
+    }
+
+    # Filter data:
+    if(is.null(filt)){
+      data.imp<-x2.imp
+    } else {
+      sd<-apply(x2.imp,2,sd)
+      rank<-rank(sd)
+      keep<-(1:length(sd))[rank %in% (length(rank)-filt+1):length(rank)]
+      data.imp<-x2.imp[,keep]
+    }
+    n<-dim(data.imp)[1]
+    p<-dim(data.imp)[2]
+    b<-length(unique(batch))
+    n ; p ; b
+
+    ## Test for dimensionality:
+    if(length(batch)!=n) {stop("Matrices do not conform: length(batch)!=n")}
+
+    # Establish Y matrix indicating batch:
+    y<-matrix(nrow=length(batch),ncol=length(unique(batch)))
+    for ( j in 1:length(unique(batch)) ){
+      y[,j]<-ifelse(batch==j,1,0)
+    }
+    if (scaleY==FALSE){
+      y2<-scale(y,center=T,scale=F) #y2.bat
+    } else {
+      ys<-matrix(nrow=length(batch),ncol=length(unique(batch)))
+      nk<-apply(y,2,sum)
+      for ( j in 1:length(unique(batch)) ){
+        ys[,j]<-ifelse(batch==j,1/nk[j],0)
+      }
+      y2<-scale(ys,center=F,scale=F) #y2.bat
+    }
+
+    # Unguided SVD:
+    svd.x<-svd(data.imp)
+
+    ### Variance of unguided PCs
+    PC.u<-data.imp%*%svd.x$v
+    var.x<-var(PC.u)
+    varPCu1<-diag(var.x)[1]/sum(diag(var.x))
+    cumulative.var.u<-numeric()
+    for( i in 1:dim(var.x)[1] ){
+      cumulative.var.u[i]<-sum(diag(var.x)[1:i])/sum(diag(var.x))
+    }
+
+    # Guided SVD:
+    svd.bat<-svd(t(y2)%*%data.imp)
+
+    ### Variance of guided PCs
+    PC.g<-data.imp%*% svd.bat$v
+    var.bat<-var(PC.g)
+    varPCg1<-diag(var.bat)[1]/sum(diag(var.bat))
+    cumulative.var.g<-numeric()
+    for( i in 1:dim(var.bat)[1] ){
+      cumulative.var.g[i]<-sum(diag(var.bat)[1:i])/sum(diag(var.bat))
+    }
+
+    # Calculate test statistic delta:
+    delta<-diag(var.bat)[1]/diag(var.x)[1]
+
+
+    ##########################################################
+    ### Begin loop for random sample of batch permutations ###
+    delta.p<-numeric()
+    for ( i in 1:nperm ){
+
+      batch.p<-permute.samp[i,]
+
+      y<-ys<-matrix(nrow=length(batch.p),ncol=length(unique(batch.p)))
+      for ( j in 1:length(unique(batch.p)) ){
+        y[,j]<-ifelse(batch.p==j,1,0)
+      }
+      if (scaleY==FALSE){
+        y2<-scale(y,center=T,scale=F) #y2.bat
+      } else {
+        nk<-apply(y,2,sum)
+        for ( j in 1:length(unique(batch.p)) ){
+          ys[,j]<-ifelse(batch.p==j,1/nk[j],0)
+        }
+        y2<-scale(ys,center=F,scale=F) #y2.bat
+      }
+
+
+
+      # Perform gPCA
+      svd.bat.p<-svd(t(y2)%*%data.imp)
+
+      var.bat.p<-var(data.imp%*% svd.bat.p$v)
+      PC.g.p<-diag(var.bat.p)[1]/sum(diag(var.bat.p))
+
+      delta.p[i]<- diag(var.bat.p)[1]/diag(var.x)[1]  #Alternative test statistic
+
+
+    } # end of permutation loop
+
+    p.val<-sum(delta<delta.p)/length(delta.p)
+    p.val
+    p.val<-ifelse(p.val==0,"<0.001",round(p.val,3))
+
+    out<-list(delta=delta,p.val=p.val,delta.p=delta.p,batch=batch,filt=filt,n=n,p=p,b=b,
+              PCg=PC.g,PCu=PC.u,varPCu1=varPCu1,varPCg1=varPCg1,nperm=nperm,
+              cumulative.var.u=cumulative.var.u,
+              cumulative.var.g=cumulative.var.g)
+
+  }
+
+
+#calculates the percentage of variation explained by batch/biological groups
+gPCA_percentage = function(data, sample_types, nperm = 1000){
+  batch = as.numeric(as.factor(sample_types))
+  out = gPCA.batchdetect(t(data), batch = batch, nperm = nperm)
+  return(((out$varPCg1-out$varPCu1)/out$varPCg1))
+}
+
 
 
 
