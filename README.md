@@ -49,7 +49,7 @@ if(!dir.exists("Results")){
   dir.create("Results")
 }
 
-setwd("InhouseResults")
+setwd("Results")
 
 #select the evaluation metrics
 metrics = c("F-score", "Davies-Bouldin", "kNN", "gPCA")
@@ -61,5 +61,11 @@ Write the results in a text file
 
 ```{r}
 write_results(res_data = Results, filename = "results.txt")
+```
+
+Plot the results in a line plot
+
+```{r}
+linePlot2(Results, filename = "resultsLineplot.png")
 ```
 
