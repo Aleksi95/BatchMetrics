@@ -438,6 +438,79 @@ boxPlotPDF = function(object, filename){
   dev.off()
 }
 
+linePlot2 = function(result_data, filename = "linePlot.png", metrics =NULL, order = "leftToRight", standardize = TRUE){
+  
+  if(standardize == TRUE){
+    result_data = lapply(result_data, function(d) lapply(d, function(X) t(std(X))))
+  }
+  if(is.null(metrics)){
+    metrics = names(result_data[[1]])
+  }
+  
+  plotlist = list()
+  for(m in metrics){
+    metr_data = lapply(result_data, function(d) d[[m]])
+    if(order == "leftToRight"){
+      levels = ncol(metr_data[[1]]):1
+    } else if(order == "rightToLeft"){
+      levels = 1:ncol(metr_data[[1]])
+    } else {
+      stop("provide ordering of x-axes!")
+    }
+    
+    #medians = sapply(metr_data, colMedians)
+    #maxs = sapply(metr_data, colMaxs)
+    #mins = sapply(metr_data, colMins)
+    
+    mediansdf = data.frame(noise_level= levels, sapply(metr_data, colMedians))
+    maxsdf = data.frame(noise_level = levels,sapply(metr_data, colMaxs))
+    minsdf = data.frame(noise_level = levels, sapply(metr_data, colMins))
+   #q75s = data.frame(corr_level = levels, std(sapply(metr_data, function(d) colQuantiles(d, probs = 0.75))))
+    #q25s = data.frame(corr_level = levels, std(sapply(metr_data, function(d) colQuantiles(d, probs = 0.25))))
+    
+    df = rbind(cbind(quantile = "median", melt(mediansdf, id.vars = 'noise_level', variable.name = 'signal')),
+          cbind(quantile = "max", melt(maxsdf, id.vars = 'noise_level', variable.name = 'signal')),
+          cbind(quantile = "min", melt(minsdf, id.vars = 'noise_level', variable.name = 'signal')))
+          #cbind(quantile = "q75", melt(q75s, id.vars = 'corr_level', variable.name = 'signal')),
+          #cbind(quantile = "q25", melt(q25s, id.vars = 'corr_level', variable.name = 'signal')))
+    
+  #sd_df = melt(dat[,-meanI], variable.name = 'method1', value.name = 'sd')
+  
+  #df = cbind(mean_df, max = as.vector(maxs), min = as.vector(mins), q75 = as.vector(q75), q25 = as.vector(q25))
+  
+      
+    p = ggplot(data = df, aes(x = noise_level, y = value, linetype = quantile, color = signal)) + ggtitle(label = m) + theme(plot.title = element_text(size=20))
+    
+    p = p + geom_line() + scale_linetype_manual(name = "",
+                                                labels = c('max', 'median', 'min'),
+                                                values = c(2,1,2))
+    
+    if(m != metrics[length(metrics)]){
+      p = p + theme(legend.position = "none")#+ geom_errorbar(aes(ymin=mean-sd,ymax=mean+sd, color = method1),width=0.1)
+    
+    } else {
+      legendp = p + theme(legend.position = "bottom", legend.key.size = unit(2, 'cm'), legend.text = element_text(size=15),
+                          legend.title = element_blank())
+      p = p + theme(legend.position = "none")
+    } 
+    plotlist[[m]] = p
+  
+  }
+  legend = extract_legend(legendp)
+  ln1 = ceiling(length(metrics)/2)
+  ln2 = length(metrics) - ln1
+  png(filename = filename, width = 1400, height = 900)
+  grid.arrange(arrangeGrob(grobs = plotlist, ncol = 3, nrow = 2),
+               legend, nrow = 2, heights = c(ln2*10, ln1))
+  #ln1 = ceiling(length(metrics)/2)
+  #ln2 = length(metrics) - ln1
+  #par(mfrow = c(ln1,ln2))
+  #multiplot(plotlist = plotlist, cols = 3)
+  
+  dev.off()
+  return(plotlist)
+}
+
 
 
 getRanks = function(metrics_list, type = c("bio", "batch", "ratio")){
