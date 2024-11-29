@@ -2,7 +2,7 @@ exportPattern("^[[:alpha:]]+")
 importFrom("grDevices", "dev.off", "pdf")
 importFrom("stats", "as.dist", "chisq.test", "cor", "cutree",
            "density", "dist", "hclust", "kmeans", "model.matrix", "sd",
-           "setNames", "weighted.mean", "var")
+           "setNames", "weighted.mean", "var", "aov")
 importFrom("utils", "write.csv2")
 importFrom("sva", "ComBat")
 importFrom("Harman", "harman", "reconstructData")
