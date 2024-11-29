@@ -14,5 +14,7 @@ importFrom("FNN", "get.knn", "KL.dist", "KL.divergence")
 importFrom("kBET", "kBET")
 importFrom("invgamma", "rinvgamma")
 importFrom("graphics", "legend")
+importFrom("pspearman", "spearman.test")
+importFrom("reshape2", "melt")
 
 
