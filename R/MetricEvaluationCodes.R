@@ -893,13 +893,13 @@ QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "D
         res = QC_bootstrap(series, group, batch, metrics = metrics, iters = iters, y = y)
       }
       if(c == "resampling"){
-        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "normal", mod =GenerateDesignMatrices(group), y = y, levels = perc)
+        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "control", mod =GenerateDesignMatrices(group), y = y, levels = perc)
       }
       if(c == "bootstrapSamples"){
         res = QC_bootstrap(series2, group, batch, metrics = metrics, iters = iters, y = y) 
       }
       if(c == "resampleSamples"){
-        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "normal", mod =GenerateDesignMatrices(group), dilute_samples = TRUE, y = y, levels = perc)
+        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "control", mod =GenerateDesignMatrices(group), dilute_samples = TRUE, y = y, levels = perc)
       }
       
       write_results(res, filename = paste(c, "txt", sep = "."))
