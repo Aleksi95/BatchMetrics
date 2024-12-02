@@ -876,7 +876,7 @@ QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "D
   
   if(is.null(corrData)){
   
-    corrData = ComBatAL(Data, batch, mod = model.matrix(~group))$data
+    corrData = ComBat(Data, batch, mod = model.matrix(~group))
   
   }
 
