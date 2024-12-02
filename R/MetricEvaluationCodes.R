@@ -880,7 +880,8 @@ QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "D
   
   }
 
-  series = diluteSeries(Data, corrData, batch, perc = perc)
+  series = diluteSeries(Data, batch = batch, groups = group, corrData = corrData, perc = perc)
+
   
   print("ADS 2 corrected")
   series2 = diluteSeries2(corrData, group, perc = perc)
