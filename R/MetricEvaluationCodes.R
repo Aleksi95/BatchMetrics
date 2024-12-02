@@ -642,8 +642,8 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
     if(dilute_samples == TRUE){
       series = diluteSeries2(correction, groups, perc = levels)
     } else {
+      series = diluteSeries(vst_new, batch = batches,corrData = correction, perc = levels)
 
-      series = diluteSeries(vst_new, correction, batches, perc = levels)
     }
     print("3")
     series = lapply(series, function(d) d[which(rowSds(d) > 1e-6),])
