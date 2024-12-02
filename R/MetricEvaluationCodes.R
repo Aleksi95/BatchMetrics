@@ -852,36 +852,81 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
 
 #wrapper function for running metric evaluations on generated variations of data
 
-QC_wrapper = function(CountData, sampleData, batch, group, metrics, iters = 100){
-
-  deseqData = DESeq2_Wrapper(CountData, sampleData, "group", "batch + group", "normal")
-
+QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "Davies-Bouldin", "kNN", "mindist", "kldist", "gPCA") , iters = 100, perc = seq(0,1, by = 0.1), corrData = NULL, deseqData = NULL, parallel = FALSE, var_measure = c("bootstrap", "resampling", "bootstrapSamples", "resampleSamples"), cores = 4){
+  
+  if(is.null(y)){
+    y = group
+  }
+  
+  if(!is.character(group)){
+    group = as.character(group)
+  }
+  
+  sampleData = data.frame(batch = batch, group = group)
+  
+  rownames(sampleData) = colnames(CountData)
+  
+  if(is.null(deseqData)){
+  
+    deseqData = DESeq2_Wrapper(CountData, sampleData, "group", "batch + group", "normal")
+  
+  }
+  
   Data = assay(vst(deseqData))
-
-  corrData = ComBatAL(Data, batch, mod = model.matrix(~group))$data
-
-  series = diluteSeries(Data, corrData, batch)
-
-  bootMetrics = QC_bootstrap(series, group, batch, metrics = metrics, iters = iters)
-
-  resampleMetrics = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "normal", mod =GenerateDesignMatrices(group))
-
-  series2 = diluteSeries2(Data, group)
-
-  bootMetricsSamples = QC_bootstrap(series2, group, batch, metrics = metrics, iters = iters)
-
-  resampleMetricsSamples = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "normal", mod =GenerateDesignMatrices(group), dilute_samples = TRUE)
-
-  reslist = list(bootMetrics, resampleMetrics, bootMetricsSamples, resampleMetricsSamples)
-
-  names(reslist) = c("bootstrap", "resampling", "bootstrapSamples", "resampleSamples")
-
-  i = 1
-  for(m in reslist){
-    write_results(m, filename = paste(names(reslist)[i], "txt", sep = "."))
-    i = i+1
+  
+  if(is.null(corrData)){
+  
+    corrData = ComBatAL(Data, batch, mod = model.matrix(~group))$data
+  
   }
 
-  return(reslist)
-}
+  series = diluteSeries(Data, corrData, batch, perc = perc)
+  
+  print("ADS 2 corrected")
+  series2 = diluteSeries2(corrData, group, perc = perc)
+  
+  if(parallel == TRUE){
+    print("using parallel computation:")
+    library(parallel)
+    reslist = mclapply(var_measure, function(c){
+      if(c == "bootstrap"){
+        res = QC_bootstrap(series, group, batch, metrics = metrics, iters = iters, y = y)
+      }
+      if(c == "resampling"){
+        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "normal", mod =GenerateDesignMatrices(group), y = y, levels = perc)
+      }
+      if(c == "bootstrapSamples"){
+        res = QC_bootstrap(series2, group, batch, metrics = metrics, iters = iters, y = y) 
+      }
+      if(c == "resampleSamples"){
+        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "normal", mod =GenerateDesignMatrices(group), dilute_samples = TRUE, y = y, levels = perc)
+      }
+      
+      write_results(res, filename = paste(c, "txt", sep = "."))
+      return(res)
+    }, mc.cores = cores)
+    names(reslist) = var_measure
+    return(reslist)
+  } else {
 
+    reslist = lapply(var_measure, function(c){
+      if(c == "bootstrap"){
+        res = QC_bootstrap(series, group, batch, metrics = metrics, iters = iters, y = y)
+      }
+      if(c == "resampling"){
+        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "normal", mod =GenerateDesignMatrices(group), y = y, levels = perc)
+      }
+      if(c == "bootstrapSamples"){
+        res = QC_bootstrap(series2, group, batch, metrics = metrics, iters = iters, y = y) 
+      }
+      if(c == "resampleSamples"){
+        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "normal", mod =GenerateDesignMatrices(group), dilute_samples = TRUE, y = y, levels = perc)
+      }
+      
+      write_results(res, filename = paste(c, "txt", sep = "."))
+      return(res)
+    })
+    names(reslist) = var_measure
+    return(reslist)
+  }
+}
