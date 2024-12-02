@@ -868,7 +868,7 @@ QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "D
   
   if(is.null(deseqData)){
   
-    deseqData = DESeq2_Wrapper(CountData, sampleData, "group", "batch + group", "normal")
+    deseqData = DESeq2_Wrapper(CountData, sampleData, "group", "batch + group", "control")
   
   }
   
