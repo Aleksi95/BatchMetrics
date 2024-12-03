@@ -27,6 +27,7 @@ requireNamespace("FNN")
 requireNamespace("limma")
 requireNamespace("DESeq2")
 requireNamespace("sva")
+requireNamespace("SummarizedExperiment")
 
 
 runMetrics = function(data, sample_types, batch, y = NULL,distMatrix=NULL, metrics, zeroRows = FALSE){
@@ -855,8 +856,8 @@ DESeq2_Wrapper = function(CountData, coldata, designCols, ctrl_sample){
   design = as.formula(paste("~",paste0(designCols, collapse = "+"), sep = ""))
   
   deseq_mat_1 = DESeqDataSetFromMatrix(countData = CountData, colData = coldata, design = design) #create the DESeq-dataset
-  deseqData1 = estimateSizeFactors(deseq_mat_1) #estimate size factors for training data
-  deseqData1 = estimateDispersions(deseqData1) 
+  deseqData1 = estimateSizeFactors(deseq_mat_1, quiet=TRUE) #estimate size factors for training data
+  deseqData1 = estimateDispersions(deseqData1, quiet=TRUE) 
   return(deseqData1)
 }
 
