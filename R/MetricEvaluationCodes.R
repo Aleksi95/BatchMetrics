@@ -626,8 +626,7 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
     colnames(newCounts) = colnames(CountData)
 
     DESeq_new = DESeq2_Wrapper(newCounts,
-                               coldata, "group",
-                               Design="batch + group", CtrlSample = Ctrl_sample)
+                               coldata, c("batch", "group"), CtrlSample = Ctrl_sample)
 
     #print("error happens here?")
     vst_new = assay(vst(DESeq_new))
@@ -850,6 +849,17 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
 
 }
 
+DESeq2_Wrapper = function(CountData, coldata, designCols, ctrl_sample){
+  
+  
+  design = as.formula(paste("~",paste0(designCols, collapse = "+"), sep = ""))
+  
+  deseq_mat_1 = DESeqDataSetFromMatrix(countData = CountData[,-i], colData = coldata[-i,], design = design) #create the DESeq-dataset
+  deseqData1 = estimateSizeFactors(deseq_mat_1) #estimate size factors for training data
+  deseqData1 = estimateDispersions(deseqData1) 
+  return(deseqData1)
+}
+
 #wrapper function for running metric evaluations on generated variations of data
 
 QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "Davies-Bouldin", "kNN", "mindist", "kldist", "gPCA") , iters = 100, perc = seq(0,1, by = 0.1), corrData = NULL, deseqData = NULL, parallel = FALSE, var_measure = c("bootstrap", "resampling", "bootstrapSamples", "resampleSamples"), cores = 4){
@@ -868,7 +878,7 @@ QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "D
   
   if(is.null(deseqData)){
   
-    deseqData = DESeq2_Wrapper(CountData, sampleData, "group", "batch + group", "control")
+    deseqData = DESeq2_Wrapper(CountData, sampleData, c("batch","group"), "control")
   
   }
   
