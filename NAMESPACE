@@ -6,6 +6,7 @@ importFrom("stats", "as.dist", "chisq.test", "cor", "cutree",
 importFrom("utils", "write.csv2")
 importFrom("sva", "ComBat")
 importFrom("DESeq2", "DESeq", "DESeqDataSetFromMatrix", "estimateSizeFactors", "estimateDispersions")
+importFrom("SummarizedExperiment", "assay")
 importFrom("Harman", "harman", "reconstructData")
 importFrom("limma", "removeBatchEffect", "plotMDS")
 importFrom("limma", "plotMDS")
