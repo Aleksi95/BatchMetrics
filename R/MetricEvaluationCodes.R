@@ -626,7 +626,7 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
     colnames(newCounts) = colnames(CountData)
 
     DESeq_new = DESeq2_Wrapper(newCounts,
-                               coldata, c("batch", "group"), CtrlSample = Ctrl_sample)
+                               coldata, c("batch", "group"), ctrl_sample = Ctrl_sample)
 
     #print("error happens here?")
     vst_new = assay(vst(DESeq_new))
