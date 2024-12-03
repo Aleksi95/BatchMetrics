@@ -28,6 +28,7 @@ requireNamespace("limma")
 requireNamespace("DESeq2")
 requireNamespace("sva")
 requireNamespace("SummarizedExperiment")
+requireNamespace("MatrixGenerics")
 
 
 runMetrics = function(data, sample_types, batch, y = NULL,distMatrix=NULL, metrics, zeroRows = FALSE){
