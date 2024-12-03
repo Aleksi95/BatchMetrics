@@ -854,7 +854,7 @@ DESeq2_Wrapper = function(CountData, coldata, designCols, ctrl_sample){
   
   design = as.formula(paste("~",paste0(designCols, collapse = "+"), sep = ""))
   
-  deseq_mat_1 = DESeqDataSetFromMatrix(countData = CountData[,-i], colData = coldata[-i,], design = design) #create the DESeq-dataset
+  deseq_mat_1 = DESeqDataSetFromMatrix(countData = CountData, colData = coldata, design = design) #create the DESeq-dataset
   deseqData1 = estimateSizeFactors(deseq_mat_1) #estimate size factors for training data
   deseqData1 = estimateDispersions(deseqData1) 
   return(deseqData1)
