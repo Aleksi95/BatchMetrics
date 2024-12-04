@@ -1,9 +1,10 @@
-library(ggplot2)
-library(reshape2)
-library(gridExtra)
+requireNamespace("ggplot2")
+requireNamespace("reshape2")
+requireNamespace("gridExtra")
+requireNamespace("grid")
 
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  library(grid)
+  #library(grid)
   
   # Make a list from the ... arguments and plotlist
   plots <- c(list(...), plotlist)
