@@ -1,5 +1,5 @@
 exportPattern("^[[:alpha:]]+")
-importFrom("grDevices", "dev.off", "pdf")
+importFrom("grDevices", "dev.off", "pdf", "png")
 importFrom("stats", "as.dist", "chisq.test", "cor", "cutree",
            "density", "dist", "hclust", "kmeans", "model.matrix", "sd",
            "setNames", "weighted.mean", "var", "aov")
