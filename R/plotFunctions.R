@@ -187,34 +187,6 @@ plotMetrics = function(object, filename){
 }
 
 
-plotDim = function(data, class, method, title = NULL){
-  
-  if(is.null(dim(data))){
-    stop("data must have at least 2 dimensions")
-  }
-  
-  if(method == "MDS"){
-    mds = limma::plotMDS(t(data), plot = FALSE)
-    x = mds$x
-    y = mds$y
-  }
-  if(method == "tsne"){
-    tsne = Rtsne::Rtsne(data, perplexity = (nrow(data) - 1)/3)
-    x = tsne$Y[,1]
-    y = tsne$Y[,2]
-  }
-  if(method == "umap"){
-    um = umap::umap(data)
-    x = um$layout[,1]
-    y = um$layout[,2]
-  }
-  if(method == "PCA"){
-    pcs = prcomp(t(data))
-    x = pcs$rotation[,1]
-    y = pcs$rotation[,2]
-  }
-  d = data.frame(x = x, y=y, class = class, names = rownames(data))
-  ggplot(d, aes(x,y)) + geom_text(aes(label = names, color = class)) + ggtitle(paste(title, ",", method, "plot 2 dimensions"))
-}
+
 
 
