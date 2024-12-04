@@ -79,7 +79,9 @@ Ftest2 = function(data, test = "AOV", alternative = "increasing"){
 
 
 
-write_results = function(res_data, filename, score = "ratio", levels = seq(0,1, by=0.1), metrics = NULL, latex = FALSE){
+write_results = function(Results, filename, score = "ratio", levels = seq(0,1, by=0.1), metrics = NULL, latex = FALSE){
+  for(i in 1:length(Results)){
+  res_data = Results[[i]]
   if(is.null(metrics)){
     metrics = names(res_data$results[[score]])
   }
@@ -118,11 +120,11 @@ write_results = function(res_data, filename, score = "ratio", levels = seq(0,1, 
                          "Ranking")
   
  if(latex == TRUE){
-   writeLatexTable(round(scoresdf, digits = 3), filename = filename)
+   writeLatexTable(round(scoresdf, digits = 3), filename = paste(names(Results)[i], filename, sep = "_"))
  } else {
-    write.table(round(scoresdf, digits = 3), file = filename)
+    write.table(round(scoresdf, digits = 3), file = paste(names(Results)[i], filename, sep = "_"))
  }
-  
+  }
 }
 
 writeLatexTable = function(table, filename){
