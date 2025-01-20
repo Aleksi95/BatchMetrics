@@ -30,12 +30,9 @@ requireNamespace("sva")
 requireNamespace("SummarizedExperiment")
 requireNamespace("MatrixGenerics")
 
-
-runMetrics = function(data, sample_types, batch, y = NULL,distMatrix=NULL, metrics, zeroRows = FALSE){
-
-  tmp = list()
-  for(m in metrics){
-    if(m %in% c("F-score", "Davies-Bouldin", "kBET", "Silhouette", "kNN", "mindist")){
+evalBatchEffect = function(data, sample_types, batch, metric = "Davies-Bouldin",  y = NULL,distMatrix=NULL, zeroRows = FALSE){
+  m = metric
+if(m %in% c("F-score", "Davies-Bouldin", "kBET", "Silhouette", "kNN", "mindist")){
       dist = TRUE
     } else {
       dist = FALSE
@@ -93,7 +90,16 @@ runMetrics = function(data, sample_types, batch, y = NULL,distMatrix=NULL, metri
     }
     metrBio = as.numeric(metrBio)
     metrBatch = as.numeric(metrBatch)
-    tmp[[m]] = c(bio = as.numeric(metrBio), batch = as.numeric(metrBatch), ratio = metrBio/metrBatch)
+    return(c(bio = as.numeric(metrBio), batch = as.numeric(metrBatch), ratio = metrBio/metrBatch))
+}
+
+
+runMetrics = function(data, sample_types, batch, y = NULL,distMatrix=NULL, metrics, zeroRows = FALSE){
+
+  tmp = list()
+  for(m in metrics){
+   
+    tmp[[m]] = evalBatchEffect(data, sample_types, batch, y = NULL,distMatrix=NULL, metric = m, zeroRows = FALSE)
   }
   names(tmp) = metrics
   return(tmp)
