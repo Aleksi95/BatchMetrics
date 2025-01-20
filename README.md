@@ -41,6 +41,12 @@ Constructing the Artificial dilution series:
 ```{r}
 ads = diluteSeries(Data = data, batch = batch, corr_method = "ComBat")
 ```
+Using evaluation metrics to evaluate level of batch effect:
+
+```{r}
+#add evaluation step
+```
+
 
 Generating datasets with random variation to evaluate metrics:
 
