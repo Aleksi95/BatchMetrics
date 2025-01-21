@@ -163,7 +163,7 @@ DaviesBouldinIndex <- function(dist, sample_types){
   }
   # BElow I vary how the mean is taken from DB-score
   output = list( DB_score=1/mean(score1), DB_score2=1/mean(score2))
-  return(output)
+  return(output[[1]])
 }
 
 
