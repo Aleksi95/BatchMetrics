@@ -44,7 +44,11 @@ ads = diluteSeries(Data = data, batch = batch, corr_method = "ComBat")
 Using evaluation metrics to evaluate level of batch effect:
 
 ```{r}
-#add evaluation step
+#data with full batch effect
+evalBatchEffect(ads[[1]], sample_types = group, batch = batch, metric = "Davies-Bouldin")
+
+#data with fully removed batch effect
+evalBatchEffect(ads[[11]], sample_types = group, batch = batch, metric = "Davies-Bouldin")
 ```
 
 
