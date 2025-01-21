@@ -323,7 +323,7 @@ DaviesBouldinScores = function(dists, sample_types){
   if(!is.list(dists)){
     dists = list(dists)
   }
-  scores = sapply(dists, function(d) DaviesBouldinIndex(d, sample_types)$DB_score)
+  scores = sapply(dists, function(d) DaviesBouldinIndex(d, sample_types))
   return(scores)
 }
 
