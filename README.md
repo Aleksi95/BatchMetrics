@@ -66,7 +66,7 @@ setwd("Results")
 #select the evaluation metrics
 metrics = c("F-score", "Davies-Bouldin", "kNN", "gPCA")
 
-Results = QC_wrapper(counts, batch, group, parallel = TRUE, var_measure = "resampling", iters = 10)
+Results = QC_wrapper(counts, batch, group, parallel = FALSE, var_measure = "resampling", iters = 10)
 ```
 
 Write the results in a text file
