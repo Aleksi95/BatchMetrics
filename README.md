@@ -54,7 +54,7 @@ evalBatchEffect(ads[[11]], sample_types = group, batch = batch, metric = "Davies
 ```
 The results show three scores: bio, batch and ratio, that refer to the cluster separation level of biological effects, batch effects and their ratio (bio/batch) respectively. In the fully corrected dataset the separation of batch effects should be lower and the ratio of biological effects and batch effects should be higher.
 
-Generating datasets with random variation to evaluate metrics:
+Generating datasets with random variation to evaluate metrics. This may also take some time, depending on the number of iterations:
 
 ```{r}
 if(!dir.exists("Results")){
