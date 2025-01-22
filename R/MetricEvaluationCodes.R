@@ -1,9 +1,7 @@
 ###BOOTSTRAP FROR RUNNING QUALITY CONTROL METRICS ON BATCH CORRECTED DATASETS
 
 
-#'@import vegan
 #'@import limma
-#'@import kBET
 #'@import FNN
 #'@import DESeq2
 #'@import sva
@@ -42,8 +40,6 @@ if(m %in% c("F-score", "Davies-Bouldin", "kBET", "Silhouette", "kNN", "mindist")
         metric = getFscore
       } else if(m == "Davies-Bouldin"){
         metric = DaviesBouldinIndex
-      } else if(m == "kBET"){
-        metric = getkBET
       } else if(m == "Silhouette"){
         metric = getSilhouette
       } else if(m == "kNN"){
@@ -105,7 +101,7 @@ runMetrics = function(data, sample_types, batch, y = NULL,distMatrix=NULL, metri
   return(tmp)
 }
 
-QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, metrics = c("F-score", "Davies-Bouldin", "kBET", "kNN", "KL-divergence", "Silhouette", "mindist"), dist_method = "pearson", iters = 50, savefile = FALSE, filename = "evaluations.csv", plot = FALSE, zeroRows = FALSE, y = NULL){
+QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, metrics = c("F-score", "Davies-Bouldin", "kNN", "KL-divergence", "Silhouette", "mindist"), dist_method = "pearson", iters = 50, savefile = FALSE, filename = "evaluations.csv", plot = FALSE, zeroRows = FALSE, y = NULL){
 
   if(!is.list(data_list)){
     data_list = list(data_list)
@@ -212,17 +208,6 @@ QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, me
         tmp_batch[[m]] = rbind(tmp_batch[[m]], chisq_batch$pvals)
         tmp_ratio[[m]] = rbind(tmp_ratio[[m]], chisq_bio$pvals/chisq_batch$pvals)
 
-      }
-
-      if(m == "kBET"){
-        ###Compute kBET rejection rates
-
-        batch.estimates = getkBET(dists, batches)
-        bio.estimates = getkBET(dists, biol.groups)
-
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], bio.estimates$rej.rates)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], batch.estimates$rej.rates)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], bio.estimates$rej.rates/batch.estimates$rej.rates)
       }
 
       if(m == "KL-divergence"){
@@ -700,17 +685,6 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
         tmp_batch[[m]] = rbind(tmp_batch[[m]], chisq_batch$pvals)
         tmp_ratio[[m]] = rbind(tmp_ratio[[m]], chisq_bio$pvals/chisq_batch$pvals)
 
-      }
-
-      if(m == "kBET"){
-        ###Compute kBET rejection rates
-
-        batch.estimates = getkBET(dists, batches)
-        bio.estimates = getkBET(dists, biol.groups)
-
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], bio.estimates$rej.rates)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], batch.estimates$rej.rates)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], bio.estimates$rej.rates/batch.estimates$rej.rates)
       }
 
       if(m == "KL-divergence"){
