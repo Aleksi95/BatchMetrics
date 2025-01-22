@@ -88,35 +88,17 @@ write_results = function(Results, filename, score = "ratio", levels = seq(0,1, b
   scoresdf = data.frame(matrix(ncol = length(metrics), nrow = 0))
   #colnames(scoresdf) = metrics
   
-  #fscores1 = sapply(metrics, function(i){
-    #data = t(res_data$results[[score]][[i]])
-    #data[is.infinite(data)] = NA
-    #Ftest2(data)
-  #})
-  fscores1 = sapply(metrics, function(i) Ftest2(t(res_data$results[[score]][[i]])))
-  #jtScores = sapply(metrics, function(i) Ftest2(t(res_data$results[[score]][[i]]), 
-                                               # test = "JT",
-                                               # alternative = c("increasing", "decreasing")[(score == "batch.signal") + 1])[1])
   
   pears = rankCorrelations(res_data$results, type = "pearson", score = score, levels = levels, metrics = metrics)$estimates
   spearman = rankCorrelations(res_data$results, score = score, levels = levels, metrics = metrics)$estimates
   scoresdf = rbind(scoresdf, pears)
   scoresdf = rbind(scoresdf, spearman)
-  scoresdf = rbind(scoresdf, fscores1)
-  scoresdf = rbind(scoresdf, log(fscores1))
-  logFxRho = spearman * log(fscores1)
-  scoresdf = rbind(scoresdf, logFxRho)
-  #scoresdf = rbind(scoresdf, jtScores)
-  #scoresdf = rbind(scoresdf, log(jtScores)*spearman)
   sign = c(-1,1)[(score == "batch.signal") + 1]
-  scoresdf = rbind(scoresdf, rank(sign*logFxRho))
+  scoresdf = rbind(scoresdf, rank(sign*spearman))
   #scoresdf = rbind(scoresdf, rank(-(log(jtScores)*spearman)))
   colnames(scoresdf) = metrics
   rownames(scoresdf) = c("Pearson correlation",  
                          "Rank correlation", 
-                         "ANOVA F-statistic", 
-                         "log(F)", 
-                         "\\rho \\times log(F)", 
                          "Ranking")
   
  if(latex == TRUE){
