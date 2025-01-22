@@ -9,11 +9,11 @@ devtools::install_github("Aleksi95/BatchMetrics")
 
 library(BatchMetrics)
 ```
-
+Alternatively, you can use the remotes package
 
 # Usage
 
-Load in the dataset of RNA-Seq count data
+Load in the dataset of RNA-Seq count data. These commands show description of the loaded datasets
 
 
 ```{r}
