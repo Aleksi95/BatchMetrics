@@ -23,6 +23,7 @@ Imports:
   gridExtra,
   grid,
   graphics,
+  MatrixGenerics,
   invgamma
 Suggests: 
     testthat (>= 3.0.0)
