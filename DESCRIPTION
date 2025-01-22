@@ -21,6 +21,8 @@ Imports:
   reshape2,
   grDevices,
   gridExtra,
+  grid,
+  graphics,
   invgamma
 Suggests: 
     testthat (>= 3.0.0)
