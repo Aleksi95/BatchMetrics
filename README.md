@@ -36,7 +36,7 @@ Show the biological sample groups:
 print(levels(group))
 ```
 
-Constructing the Artificial dilution series:
+Constructing the Artificial dilution series. This step may take a few minutes:
 
 ```{r}
 ads = diluteSeries(Data = data, batch = batch, corr_method = "ComBat")
