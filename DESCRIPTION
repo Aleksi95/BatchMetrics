@@ -11,7 +11,6 @@ LazyData: true
 Imports:
   ggplot2,
   FNN,
-  kBET,
   pspearman,
   sva,
   Harman,
