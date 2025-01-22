@@ -41,6 +41,8 @@ Constructing the Artificial dilution series. This step may take a few minutes:
 ```{r}
 ads = diluteSeries(Data = data, batch = batch, corr_method = "ComBat")
 ```
+This generates a list with datasets with different levels of batch effects removed (0% to 100% with 10% increments, so a list of 11 entries).
+
 Using evaluation metrics to evaluate level of batch effect:
 
 ```{r}
