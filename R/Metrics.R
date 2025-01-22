@@ -9,7 +9,6 @@
 #   Check Package:             'Ctrl + Shift + E'
 #   Test Package:              'Ctrl + Shift + T'
 
-#'@importFrom kBET kBET
 #'@importFrom FNN get.knn
 #'@importFrom stats model.matrix
 #'@importFrom stats dist
@@ -286,30 +285,6 @@ getChisq = function(dists, sample_types){
     pvals = c(pvals, chisq_test$p.value)
   }
   return(list(statistics = statistics, pvals =pvals))
-}
-
-###run kBET algorithm (BÃ¼ttner et al, 2019), a kNN-based metric for cluster separation, neighbourhood size is determined as the mean batch size
-##INPUT: distance matrix or a list of distance matrices, sample type vector containing the biological or batch labels of interest
-
-##OUTPUT: kBET rejection rate (see BÃ¼ttner et al 2019) and average p-value
-
-getkBET = function(dists, sample_types){
-  if(!is.list(dists)){
-    dists = list(dists)
-  }
-  batch = as.numeric(as.factor(sample_types))
-  initk =floor(mean(table(batch)))
-  avg.pvals = c()
-  rej.rates = c()
-  for(i in 1:length(dists)){
-    data = dists[[i]]
-    knn = get.knn(data, k=initk, algorithm = 'cover_tree')
-    batch.estimate = kBET(data, batch, plot = FALSE, k0 = initk, knn = knn)
-    avg.pvals = c(avg.pvals, batch.estimate$average.pval)
-    rej.rates = c(rej.rates, batch.estimate$summary$kBET.observed[1])
-  }
-
-  return(list(avg.pvals = avg.pvals, rej.rates = rej.rates))
 }
 
 
