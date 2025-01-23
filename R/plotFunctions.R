@@ -47,9 +47,6 @@ extract_legend <- function(my_ggp) {
   return(step3)
 }
 
-require('ggplot2')
-require('reshape2')
-require('patchwork')
 
 linePlot = function(dat, title = "title"){
   
