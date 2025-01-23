@@ -13,6 +13,7 @@ Imports:
   FNN,
   DESeq2,
   pspearman,
+  parallel,
   sva,
   Harman,
   limma,
