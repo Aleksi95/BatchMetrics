@@ -896,7 +896,7 @@ QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "D
         res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "control", mod =GenerateDesignMatrices(group), dilute_samples = TRUE, y = y, levels = perc)
       }
       
-      write_results(res, filename = paste(c, "txt", sep = "."))
+      #write_results(res, filename = paste(c, "txt", sep = "."))
       return(res)
     }, mc.cores = cores)
     names(reslist) = var_measure
@@ -917,7 +917,7 @@ QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "D
         res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample = "normal", mod =GenerateDesignMatrices(group), dilute_samples = TRUE, y = y, levels = perc)
       }
       
-      write_results(res, filename = paste(c, "txt", sep = "."))
+      #write_results(res, filename = paste(c, "txt", sep = "."))
       return(res)
     })
     names(reslist) = var_measure
