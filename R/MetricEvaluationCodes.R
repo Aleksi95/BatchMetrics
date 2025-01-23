@@ -25,6 +25,7 @@ requireNamespace("FNN")
 requireNamespace("limma")
 requireNamespace("DESeq2")
 requireNamespace("sva")
+requireNamespace("parallel")
 requireNamespace("SummarizedExperiment")
 requireNamespace("MatrixGenerics")
 
@@ -880,7 +881,7 @@ QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "D
   
   if(parallel == TRUE){
     print("using parallel computation:")
-    library(parallel)
+    #library(parallel)
     reslist = mclapply(var_measure, function(c){
       if(c == "bootstrap"){
         res = QC_bootstrap(series, group, batch, metrics = metrics, iters = iters, y = y)
