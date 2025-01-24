@@ -69,7 +69,9 @@ linePlot = function(dat, title = "title"){
 std = function(d) apply(d, 1, function(x) (x-min(x))/(max(x)-min(x)))
 
 linePlot2 = function(result_data, filename = "linePlot.png", metrics =NULL, order = "leftToRight", standardize = TRUE){
-  
+  if(length(result_data) == 1){
+    result_data = result_data[[1]]$results
+  }
   if(standardize == TRUE){
     result_data = lapply(result_data, function(d) lapply(d, function(X) t(std(X))))
   }
