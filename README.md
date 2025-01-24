@@ -72,7 +72,7 @@ Results = QC_wrapper(counts, batch, group, parallel = FALSE, var_measure = "resa
 Write the results in a text file
 
 ```{r}
-write_results(res_data = Results, filename = "results.txt")
+write_results(Results, filename = "results.txt")
 ```
 
 Plot the results in a line plot
