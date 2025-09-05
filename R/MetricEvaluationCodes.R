@@ -646,7 +646,8 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
       se <- SingleCellExperiment(assays=list(counts = newCounts),
                                  colData=DataFrame(coldata))
       
-      vst_new = logNormCounts(se)
+      se = logNormCounts(se)
+      vst_new = logcounts(se)
     }
     
 
