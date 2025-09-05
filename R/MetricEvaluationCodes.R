@@ -255,6 +255,17 @@ QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, me
 
       }
 
+         if(m == "kBET"){
+    ###Compute kBET rejection rates
+
+        batch.estimates = sapply(newdata_list, function(d) kBET(t(d), batches)$summary[1,2])
+        bio.estimates = sapply(newdata_list, function(d) kBET(t(d), biol.groups)$summary[1,2])
+
+        tmp_bio[[m]] = rbind(tmp_bio[[m]], bio.estimates)
+        tmp_batch[[m]] = rbind(tmp_batch[[m]], batch.estimates)
+        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], bio.estimates/batch.estimates)
+      }
+
       if(m %in% c("avedist", "kldist","sepscore","skewdiv","pvca")){
         bFactor = as.factor(as.numeric(as.factor(batches)))
         groupFactor = as.factor(as.numeric(as.factor(biol.groups)))
