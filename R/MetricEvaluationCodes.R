@@ -591,7 +591,7 @@ diluteSeries2 = function(data, samples, perc = seq(0,1, by = 0.1)){
 #Generate datasets with variation, with deseq-normalization and batch-correction
 
 QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F-score", "Davies-Bouldin", "kNN", "mindist", "kldist"),
-                       iters = 100, corrMethod = "combat", mod = NULL, Ctrl_sample, y = NULL, levels = seq(0,1, by = 0.1), dilute_samples = FALSE){
+                       iters = 100, corrMethod = "combat", mod = NULL, Ctrl_sample, y = NULL, levels = seq(0,1, by = 0.1), dilute_samples = FALSE, normalization = "deseq"){
 
   tmp_bio = list()
   tmp_batch = list()
@@ -619,29 +619,36 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
     rownames(newCounts) = rownames(CountData)
     colnames(newCounts) = colnames(CountData)
 
-    DESeq_new = DESeq2_Wrapper(newCounts,
-                               coldata, c("batch", "group"), ctrl_sample = Ctrl_sample)
-
-    #print("error happens here?")
+    if(normalization == "deseq"){
+    if(is.null(design)){
+      design = as.formula("~batch + group")
+    }
+    DESeq_new = DESeqDataSetFromMatrix(newCounts,
+                               coldata, design=design)
+    DESeq_new = estimateSizeFactors(DESeq_new)
+    DESeq_new = estimateDispersions(DESeq_new)
+    
     vst_new = assay(vst(DESeq_new))
-    #print("1")
+    } else if(normalization == "scuttle"){
+      se <- SingleCellExperiment(assays=list(counts = newCounts),
+                                 colData=DataFrame(coldata))
+      
+      vst_new = logNormCounts(se)
+    }
+    
 
     if(corrMethod == "combat"){
       correction = ComBat(vst_new, batch = batches, mod = mod)
-    } #else if (corrMethod == "clustercenter"){
-      #correction = ClusterCenter(vst_new, batches)
-    #}
-    #print("2")
+    } 
     if(dilute_samples == TRUE){
       series = diluteSeries2(correction, groups, perc = levels)
     } else {
       series = diluteSeries(vst_new, batch = batches,corrData = correction, perc = levels)
 
     }
-    print("3")
+    
     series = lapply(series, function(d) d[which(rowSds(d) > 1e-6),])
     dists = lapply(series, function(d) GetDistMatrix(d, dist_method = "pearson"))
-    print("4")
 
     #metrics = c("F-score", "Davies-Bouldin", "kBET", "kNN", "KL-divergence", "Silhouette", "kNN", "mindist")
 
