@@ -20,7 +20,7 @@
 
 ## Bootstrapping the genes in the data
 ### Wrapper for many datasets
-#requireNamespace("kBET")
+requireNamespace("kBET")
 requireNamespace("FNN")
 requireNamespace("limma")
 requireNamespace("DESeq2")
@@ -28,6 +28,8 @@ requireNamespace("sva")
 requireNamespace("parallel")
 requireNamespace("SummarizedExperiment")
 requireNamespace("MatrixGenerics")
+requireNamespace("SingleCellExperiment")
+requireNamespace("scuttle")
 
 evalBatchEffect = function(data, sample_types, batch, metric = "Davies-Bouldin",  y = NULL,distMatrix=NULL, zeroRows = FALSE){
   m = metric
