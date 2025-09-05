@@ -22,4 +22,6 @@ importFrom("reshape2", "melt")
 importFrom("MatrixGenerics", "rowSds", "rowMeans")
 importFrom("grid", "grid.newpage", "pushViewport", "viewport", "grid.layout")
 importFrom("gridExtra", "grid.arrange", "arrangeGrob")
-
+importFrom("SingleCellExperiment", "SingleCellExperiment")
+importFrom("scuttle", "logNormCounts")
+importFrom("kBET", "kBET")
