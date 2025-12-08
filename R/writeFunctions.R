@@ -125,4 +125,27 @@ writeLatexTable = function(table, filename){
 }
 
 
+write_results2 = function(res_data, filename = "rankCorrelations.txt"){
+  
+  metrics = names(res_data[[1]])
+  scoresdf = data.frame(matrix(ncol = length(metrics), nrow = 0))
+  for(type in c("biol.signal", "batch.signal", "ratio")){
+  
+  #colnames(scoresdf) = metrics
+  
+  #scores1 = sapply(metrics, function(i) Ftest2(t(res_data$results[[type]][[i]])))
+  scoresdf = rbind(scoresdf, rankCorrelations(res_data, 1:11, type = type)$estimates * ifelse(type == "batch.signal", -1, 1))
+  #print(fscores1)
+  #scoresdf = rbind(scoresdf, log(fscores1))
+  #scoresdf = rbind(scoresdf, rankCorrelations(res_data$results, 1:11)$estimates * log(fscores1))
+  
+  }
+  colnames(scoresdf) = metrics
+  rownames(scoresdf) = c("bio", "batch", "ratio")
+  
+  
+  write.table(round(scoresdf, digits = 3), file = filename)
+  return(round(scoresdf, digits = 3))
+}
+
 
