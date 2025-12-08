@@ -387,7 +387,7 @@ QC_bootstrap = function(data_list, biol.groups, batches, method_names = NULL, me
   }
 
 
-  return(list(means = qc_evaluations, results = reslist, method_class = method_names))
+  return(reslist)
 
 }
 
@@ -1150,7 +1150,7 @@ QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F
   colnames(qc_evaluations) = paste(rep(metrics, each=6), paste(colnames(qc_evaluations), rep(types, each=2)))
   
   reslist = list(biol.signal = tmp_bio, batch.signal = tmp_batch, ratio = tmp_ratio)
-  return(list(means = qc_evaluations, results = reslist, method_class = method_names))
+  return(reslist)
   
 }
 
