@@ -72,12 +72,12 @@ Results = QC_wrapper(counts, batch, group, parallel = FALSE, var_measure = "resa
 Write the results in a text file
 
 ```{r}
-write_results2(Results, filename = "results.txt")
+write_results2(Results$resampling, filename = "results.txt")
 ```
 
 Plot the results in a line plot
 
 ```{r}
-linePlot2(Results, filename = "resultsLineplot.png")
+linePlot2(Results$resampling, filename = "resultsLineplot.png")
 ```
 
