@@ -68,10 +68,21 @@ linePlot = function(dat, title = "title"){
 
 std = function(d) apply(d, 1, function(x) (x-min(x))/(max(x)-min(x)))
 
-linePlot2 = function(result_data, filename = "linePlot.png", metrics =NULL, order = "leftToRight", standardize = TRUE){
-  if(length(result_data) == 1){
-    result_data = result_data[[1]]$results
+linePlot2 = function(result_data, filename = "linePlot.pdf", fileType = "pdf", metrics =NULL, order = "leftToRight", standardize = TRUE, quantiles = c(0.25,0.5,0.75), signals = c("bio", "batch", "ratio")){
+  
+  if(length(result_data) > 3){
+    newResultData = mesPlotData = lapply(signals, function(t) {
+      metrics = names(result_data[[1]][[t]])
+      res = lapply(metrics, function(m){
+        t(sapply(result_data, function(d) d[[t]][[m]])*ifelse(m == "CMS", -1,1))
+      })
+      names(res) = metrics
+      res
+    })
+    result_data = newResultData
+    names(result_data) = signals
   }
+  
   if(standardize == TRUE){
     result_data = lapply(result_data, function(d) lapply(d, function(X) t(std(X))))
   }
@@ -105,9 +116,26 @@ linePlot2 = function(result_data, filename = "linePlot.png", metrics =NULL, orde
    #q75s = data.frame(corr_level = levels, std(sapply(metr_data, function(d) colQuantiles(d, probs = 0.75))))
     #q25s = data.frame(corr_level = levels, std(sapply(metr_data, function(d) colQuantiles(d, probs = 0.25))))
     
-    df = rbind(cbind(quantile = "median", melt(mediansdf, id.vars = 'noise_level', variable.name = 'signal')),
-          cbind(quantile = "max", melt(maxsdf, id.vars = 'noise_level', variable.name = 'signal')),
-          cbind(quantile = "min", melt(minsdf, id.vars = 'noise_level', variable.name = 'signal')))
+    df = data.frame()
+    qnames = c()
+    for(q in quantiles){
+      if(is.character(q)){
+        if(q == "median") q = 0.5
+        if(q == "min") q = 0
+        if(q == "max") q = 1
+      }
+      qname = ifelse(q == 0.5, "median", as.character(q))
+      if(q %in% c(0,1)) qname = ifelse(q == 0, "min", "max")
+       
+      qdf = cbind(quantile = qname, melt(data.frame(noise_level = levels, sapply(metr_data, function(d) colQuantiles(d, probs = q))), 
+                                            id.vars = 'noise_level', variable.name = 'signal'))
+      df = rbind(df, qdf)
+      qnames = c(qnames, qname)
+    }
+    #print(df)
+    #df = rbind(cbind(quantile = "median", melt(mediansdf, id.vars = 'noise_level', variable.name = 'signal')),
+     #     cbind(quantile = "max", melt(maxsdf, id.vars = 'noise_level', variable.name = 'signal')),
+      #    cbind(quantile = "min", melt(minsdf, id.vars = 'noise_level', variable.name = 'signal')))
           #cbind(quantile = "q75", melt(q75s, id.vars = 'corr_level', variable.name = 'signal')),
           #cbind(quantile = "q25", melt(q25s, id.vars = 'corr_level', variable.name = 'signal')))
     
@@ -115,12 +143,12 @@ linePlot2 = function(result_data, filename = "linePlot.png", metrics =NULL, orde
   
   #df = cbind(mean_df, max = as.vector(maxs), min = as.vector(mins), q75 = as.vector(q75), q25 = as.vector(q25))
   
-      
+    colors = c("black", "red", "blue")  
     p = ggplot(data = df, aes(x = noise_level, y = value, linetype = quantile, color = signal)) + ggtitle(label = m) + theme(plot.title = element_text(size=20))
     
     p = p + geom_line() + scale_linetype_manual(name = "",
-                                                labels = c('max', 'median', 'min'),
-                                                values = c(2,1,2))
+                                                labels = qnames,
+                                                values = c(2,1,2)) + scale_color_manual(values=colors[1:length(result_data)]) + theme_minimal()
     
     if(m != metrics[length(metrics)]){
       p = p + theme(legend.position = "none")#+ geom_errorbar(aes(ymin=mean-sd,ymax=mean+sd, color = method1),width=0.1)
@@ -136,15 +164,40 @@ linePlot2 = function(result_data, filename = "linePlot.png", metrics =NULL, orde
   legend = extract_legend(legendp)
   ln1 = ceiling(length(metrics)/2)
   ln2 = length(metrics) - ln1
-  png(filename = filename, width = 1400, height = 900)
-  grid.arrange(arrangeGrob(grobs = plotlist, ncol = 3, nrow = 2),
-               legend, nrow = 2, heights = c(ln2*10, ln1))
+  if(fileType == "pdf"){
+    
+    if(ln1 > 3){
+      rown = 3
+    } else {
+      rown = 2
+    }
+    pdf(file = filename, width = 5*3, height = 5*rown)
+    grid.arrange(arrangeGrob(grobs = plotlist, ncol = 3, nrow = rown),
+                 legend, nrow = 3, heights = c(ln2*10, ln1, ln1))
+    #ln1 = ceiling(length(metrics)/2)
+    #ln2 = length(metrics) - ln1
+    #par(mfrow = c(ln1,ln2))
+    #multiplot(plotlist = plotlist, cols = 3)
+    
+    dev.off()
+  }
+  if(fileType == "png"){
+    
+    if(ln1 > 3){
+      rown = 3
+    } else {
+      rown = 2
+    }
+  png(filename = filename, width = 1400, height = 1400)
+  grid.arrange(arrangeGrob(grobs = plotlist, ncol = 3, nrow = rown),
+               legend, nrow = 3, heights = c(ln2*10, ln1, ln1))
   #ln1 = ceiling(length(metrics)/2)
   #ln2 = length(metrics) - ln1
   #par(mfrow = c(ln1,ln2))
   #multiplot(plotlist = plotlist, cols = 3)
   
   dev.off()
+  }
   return(plotlist)
 }
 
