@@ -54,10 +54,10 @@ QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "D
         res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample =Ctrl_sample, mod =GenerateDesignMatrices(group), y = y, levels = perc, design = design, normalization = normalization, parallel = parallel, nCores = cores, corrMethod = corrMethod, usePCA = usePCA, nPCs = nPCs, var.model = var.model)
       }
       if(c == "bootstrapSamples"){
-        res = QC_bootstrap(Data, group, batch, metrics = metrics, iters = iters,parallel = parallel, nCores = cores, usePCA = usePCA, nPCs = nPCs, corrMethod = corrMethod, diluteSamples = TRUE)
+        res = QC_bootstrap(Data, group, batch, metrics = metrics, iters = iters,parallel = parallel, nCores = cores, usePCA = usePCA, nPCs = nPCs, corrMethod = corrMethod, dilute_samples = TRUE)
       }
       if(c == "resampleSamples"){
-        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample =Ctrl_sample, mod =GenerateDesignMatrices(group), y = y, levels = perc, design = design, normalization = normalization, parallel = parallel, nCores = cores, corrMethod = corrMethod, usePCA = usePCA, nPCs = nPCs, oldADS = oldADS, var.model = var.model, diluteSamples = TRUE)
+        res = QC_resample(CountData, coldata = sampleData, batch, group, metrics = metrics, iters = iters, Ctrl_sample =Ctrl_sample, mod =GenerateDesignMatrices(group), y = y, levels = perc, design = design, normalization = normalization, parallel = parallel, nCores = cores, corrMethod = corrMethod, usePCA = usePCA, nPCs = nPCs, var.model = var.model, dilute_samples = TRUE)
       }
       
       gc()
