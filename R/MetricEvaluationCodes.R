@@ -885,561 +885,254 @@ diluteSeries2 = function(data, samples, perc = seq(0,1, by = 0.1)){
 
 #Generate datasets with variation, with deseq-normalization and batch-correction
 
-QC_resample = function(CountData,coldata = NULL, batches, groups, metrics = c("F-score", "Davies-Bouldin", "kNN", "mindist", "kldist", "skewdiv"),
-                       iters = 100, corrMethod = "combat", mod = NULL, Ctrl_sample, y = NULL, levels = seq(0,1, by = 0.1), dilute_samples = FALSE, design = NULL, normalization = "deseq"){
-  
-  
-  
-  tmp_bio = list()
-  tmp_batch = list()
-  tmp_ratio = list()
-  
-  n = length(levels)
-  
-  if(is.null(coldata)){
-  coldata = data.frame(batch = batches, group = groups)
-  
-  rownames(coldata) = colnames(CountData)
-  }
-  
-  for(i in 1:iters) {
-    newCounts = data.frame(matrix(nrow = nrow(CountData), ncol = 0))
-    
-    
-    ##Sample the new count data
-    for(j in 1:ncol(CountData)){
-      probs = (gtools::rdirichlet(1, CountData[,j]))[1,]
-      #probs = CountData[,j]/(sum(CountData[,j]))
-      newCounts = cbind(newCounts, rmultinom(1, size = sum(CountData[,j]), probs))
-    }
-    
-    rownames(newCounts) = rownames(CountData)
-    colnames(newCounts) = colnames(CountData)
-    
-    if(normalization == "deseq"){
-    if(is.null(design)){
-      design = as.formula("~batch + group")
-    }
-    DESeq_new = DESeqDataSetFromMatrix(newCounts,
-                               coldata, design=design)
-    DESeq_new = estimateSizeFactors(DESeq_new)
-    DESeq_new = estimateDispersions(DESeq_new)
-    
-    #print("error happens here?")
-    vst_new = assay(vst(DESeq_new))
-    } else if(normalization == "scuttle"){
-      print("normalizing single cell data")
-      se <- SingleCellExperiment(assays=list(counts = newCounts),
-                                 colData=DataFrame(coldata))
-      
-      se = logNormCounts(se)
-      vst_new = logcounts(se)
-    }
-    #print("1")
-    
-    if(corrMethod == "combat"){
-      correction = ComBatAL(vst_new, batch = batches, mod = mod)$data
-    } else if (corrMethod == "clustercenter"){
-      correction = ClusterCenter(vst_new, batches)
-    }
-    #print("2")
-    if(dilute_samples == TRUE){
-	series = diluteSeries2(correction, groups, perc = levels)
-    } else {
-    
-    series = diluteSeries(vst_new, correction, batches, perc = levels)
-    }
-    #print("3")
-    series = lapply(series, function(d) d[which(rowSds(d) > 1e-6),])
-    dists = lapply(series, function(d) GetDistMatrix(d, dist_method = "pearson"))
-    #print("4")
-    #series = series
-    #metrics = c("F-score", "Davies-Bouldin", "kBET", "kNN", "KL-divergence", "Silhouette", "kNN", "mindist")
-    
 
-    
-    biol.groups = groups
-    scaledF = FALSE
-    print("computing metrics")
-    for(m in metrics){
-      if(m == "F-score" | m == "scaled F-score"){
-        
-        if(m == "scaled F-score"){
-          scaledF = TRUE
-        }
-        
-        ###Compute F-scores for biol. and batch signal
-        fbatch = getFscores(dists, batches, scaled = scaledF)
-        fbio = getFscores(dists, biol.groups, scaled = scaledF)
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], fbio)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], fbatch)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], fbio/fbatch)
-      }
-      
-      if(m == "Davies-Bouldin"){
-        
-        ###Compute Davies-Bouldin indices
-        
-        db_batches = DaviesBouldinScores(dists, batches)
-        dbs = DaviesBouldinScores(dists, biol.groups)
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], dbs)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], db_batches)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], dbs/db_batches)
-      }
-      
-      if(m == "Chi-square"){
-        ###Compute chi-square p-values for clustered data
-        
-        chisq_bio = getChisq(dists, biol.groups)
-        chisq_batch = getChisq(dists, batches)
-        
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], chisq_bio$pvals)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], chisq_batch$pvals)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], chisq_bio$pvals/chisq_batch$pvals)
-        
-      }
-      
-      if(m == "kBET"){
-    ###Compute kBET rejection rates
-
-        batch.estimates = sapply(series, function(d) kBET(t(d), batches)$summary[1,2])
-        bio.estimates = sapply(series, function(d) kBET(t(d), biol.groups)$summary[1,2])
-
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], bio.estimates)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], batch.estimates)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], bio.estimates/batch.estimates)
-      }
-      
-      if(m == "KL-divergence"){
-        ###Compute Kullback-Leibler divergence of between and within cluster densities
-        
-        kld_bio = getKLdistances(dists, biol.groups)
-        kld_batch = getKLdistances(dists, batches)
-        
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], kld_bio)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], kld_batch)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], kld_bio/kld_batch)
-      }
-      
-      if(m == "Silhouette"){
-        silh_bio = getSilhouettes(dists, biol.groups)
-        silh_batch = getSilhouettes(dists, batches)
-        
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], silh_bio)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], silh_batch)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], silh_bio/silh_batch)
-      }
-      
-      if(m == "kNN"){
-        props_batch = kNN_proportions(dists, batches)
-        
-        props_bio = kNN_proportions(dists, biol.groups)
-        
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], props_bio)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], props_batch)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], props_bio/props_batch)
-      }
-      
-      
-      if(m == "mindist"){
-        
-        dist_bio = getMinDists(dists, biol.groups)
-        dist_batch = getMinDists(dists, batches)
-        
-        tmp_bio[[m]] = rbind(tmp_bio[[m]], dist_bio)
-        tmp_batch[[m]] = rbind(tmp_batch[[m]], dist_batch)
-        tmp_ratio[[m]] = rbind(tmp_ratio[[m]], dist_bio/dist_batch)
-        
-      }
-      
-      if(m %in% c("avedist", "kldist","sepscore","skewdiv","pvca", "gPCA")){
-        bFactor = as.factor(as.numeric(as.factor(batches)))
-        groupFactor = as.factor(as.numeric(as.factor(biol.groups)))
-        #series = series
-        
-        if(m == "avedist"){
-          aveDists_bio = sapply(series, function(d) avedist(t(d), groupFactor))
-          aveDists_batch = sapply(series, function(d) avedist(t(d), bFactor))
-          
-          
-          tmp_bio[[m]] = rbind(tmp_bio[[m]], aveDists_bio)
-          tmp_batch[[m]] = rbind(tmp_batch[[m]], aveDists_batch)
-          tmp_ratio[[m]] = rbind(tmp_ratio[[m]], aveDists_bio/aveDists_batch)
-        }
-        
-        if(m == "kldist"){
-          
-          klDists_bio = sapply(series, function(d){
-            kldist(t(d), groupFactor)
-          })
-          klDists_batch = sapply(series, function(d) kldist(t(d), bFactor))
-          
-          tmp_bio[[m]] = rbind(tmp_bio[[m]], klDists_bio)
-          tmp_batch[[m]] = rbind(tmp_batch[[m]], klDists_batch)
-          tmp_ratio[[m]] = rbind(tmp_ratio[[m]], klDists_bio/klDists_batch)
-        }
-        
-        if(m == "sepscore"){
-          sepDists_bio = sapply(series, function(d) sepscore(t(d), groupFactor))
-          sepDists_batch = sapply(series, function(d) sepscore(t(d), bFactor))
-          
-          tmp_bio[[m]] = rbind(tmp_bio[[m]], sepDists_bio)
-          tmp_batch[[m]] = rbind(tmp_batch[[m]], sepDists_batch)
-          tmp_ratio[[m]] = rbind(tmp_ratio[[m]], sepDists_bio/sepDists_batch)
-        }
-        
-        if(m == "skewdiv"){
-          aveDists_bio = sapply(series, function(d) skewdiv(t(d), groupFactor))
-          aveDists_batch = sapply(series, function(d) skewdiv(t(d), bFactor))
-          
-          
-          tmp_bio[[m]] = rbind(tmp_bio[[m]], aveDists_bio)
-          tmp_batch[[m]] = rbind(tmp_batch[[m]], aveDists_batch)
-          tmp_ratio[[m]] = rbind(tmp_ratio[[m]], aveDists_bio/aveDists_batch)
-        }
-        
-        if(m == "pvca"){
-          aveDists_bio = sapply(series, function(d) pvcam(t(d), groupFactor, y = as.factor(as.numeric(as.factor(y)))))
-          aveDists_batch = sapply(series, function(d) pvcam(t(d), bFactor, y = as.factor(as.numeric(as.factor(y)))))
-          
-          
-          tmp_bio[[m]] = rbind(tmp_bio[[m]], aveDists_bio)
-          tmp_batch[[m]] = rbind(tmp_batch[[m]], aveDists_batch)
-          tmp_ratio[[m]] = rbind(tmp_ratio[[m]], aveDists_bio/aveDists_batch)
-        }
-        
-        if(m == "gPCA"){
-          gpcaBio = sapply(series, function(d) gPCA_percentage(d, biol.groups, nperm = 250))
-          gpcaBatch = sapply(series, function(d) gPCA_percentage(d, batches, nperm = 250))
-          
-          tmp_bio[[m]] = rbind(tmp_bio[[m]], gpcaBio)
-          tmp_batch[[m]] = rbind(tmp_batch[[m]], gpcaBatch)
-          tmp_ratio[[m]] = rbind(tmp_ratio[[m]], gpcaBio/gpcaBatch)
-        }
-        
-      }
-      
-      
-      ###to-do: add some other metrics (principal variance components, etc.)
-      
-    }
-    
-    print(paste(i, "/", iters, "done"))
-    
-  }
-  
-  method_names = paste(levels, corrMethod)
-  
-  tmp_bio = lapply(tmp_bio, setNames, nm = method_names)
-  tmp_batch = lapply(tmp_batch, setNames, nm = method_names)
-  tmp_ratio = lapply(tmp_ratio, setNames, nm = method_names)
-  
-  names(tmp_batch) = names(tmp_bio) = names(tmp_ratio) = metrics  
-  
-  qc_evaluations = data.frame(matrix(nrow = n, ncol = 0))
-  types = c("bio", "batch", "ratio")
-  
-  for(i in 1:length(metrics)){
-    for(tmp in list(tmp_bio, tmp_batch, tmp_ratio)){
-      qc_evaluations = cbind(qc_evaluations, mean = colMeans(tmp[[i]], na.rm = TRUE))
-      qc_evaluations = cbind(qc_evaluations, sd = apply(tmp[[i]], 2, sd))
-    }
-  }
-  
-  row.names(qc_evaluations) = method_names
-  colnames(qc_evaluations) = paste(rep(metrics, each=6), paste(colnames(qc_evaluations), rep(types, each=2)))
-  
-  reslist = list(biol.signal = tmp_bio, batch.signal = tmp_batch, ratio = tmp_ratio)
-  return(reslist)
-  
-}
-
-QC_resample_par = function(CountData,coldata = NULL, batches, groups, metrics = c("F-score", "Davies-Bouldin", "kNN", "mindist", "kldist", "skewdiv"),
-                           iters = 100, corrMethod = "combat", mod = NULL, Ctrl_sample, y = NULL, levels = seq(0,1, by = 0.1), dilute_samples = FALSE, design = NULL, normalization = "deseq", nCores = 16){
-  
-  
-  
-  tmp_bio = list()
-  tmp_batch = list()
-  tmp_ratio = list()
-  
-  n = length(levels)
+QC_resample = function(CountData, coldata = NULL, batches, groups, 
+                           metrics = c("F-score", "Davies-Bouldin", "kNN", "mindist", "kldist", "skewdiv"),
+                           iters = 100, corrMethod = "ComBat", mod = NULL, Ctrl_sample, y = NULL, 
+                           levels = seq(0,1, by = 0.1), dilute_samples = FALSE, 
+                           design = NULL, normalization = "deseq", parallel = TRUE, nCores = 16, 
+                           usePCA = FALSE, nPCs = 50, var.model = "multinom"){
   
   if(is.null(coldata)){
     coldata = data.frame(batch = batches, group = groups)
-    
     rownames(coldata) = colnames(CountData)
   }
   
-  #nCores <- 16
-  #registerDoParallel(cl <- makeCluster(nCores))
+  # Ensure CountData is a matrix for faster access
+  CountData <- as.matrix(CountData)
   
-  result = mclapply(1:iters, function(i) {
-    newCounts = data.frame(matrix(nrow = nrow(CountData), ncol = 0))
+  if(var.model == "nbinom"){
+    if(is.null(design)){
+      design = as.formula("~batch + group")
+    }
+    #estimate parameters using DESEq2
+    suppressMessages({
+      DESeq_d = DESeqDataSetFromMatrix(CountData, coldata, design=design)
+      DESeq_d = estimateSizeFactors(DESeq_d)
+      DESeq_d = estimateDispersions(DESeq_d)
+      
+    })
+  }
+  # --- OPTIMIZATION 1: Pre-calculate Dirichlet parameters if possible or optimize loop ---
+  # Depending on library, doing this inside the parallel worker might be safer, 
+  # but we define the worker function cleanly below.
+  
+  run_iteration <- function(i) {
     
     
-    ##Sample the new count data
-    for(j in 1:ncol(CountData)){
-      probs = (gtools::rdirichlet(1, CountData[,j]))[1,]
-      #probs = CountData[,j]/(sum(CountData[,j]))
-      newCounts = cbind(newCounts, rmultinom(1, size = sum(CountData[,j]), probs))
+    # --- OPTIMIZATION 2: Vectorized Resampling (Removing the cbind loop) ---
+    # Instead of growing a dataframe, generate all columns and combine once.
+    # checking if we can use matrix operations. 
+    
+    n_genes <- nrow(CountData)
+    n_samples <- ncol(CountData)
+    
+    # Pre-allocate matrix for speed
+    newCounts <- matrix(0, nrow = n_genes, ncol = n_samples)
+    colnames(newCounts) <- colnames(CountData)
+    rownames(newCounts) <- rownames(CountData)
+    
+    l_theta = function(x, alpha) (x + alpha)/(sum(x) + alpha*length(x))
+    
+    for(j in 1:n_samples){
+      # gtools::rdirichlet returns a matrix, we take the first row
+      ##add Laplace smoothing?
+      #theta = l_theta(CountData[,j], alpha = 1)
+      if(var.model == "multinom"){
+      probs <- gtools::rdirichlet(1, CountData[,j])[1,] 
+      newCounts[,j] <- rmultinom(1, size = sum(CountData[,j]), prob = probs)
+      } else if(var.model == "nbinom"){
+        
+        #estimate parameters using DESEq2
+        newCounts[,j] = rnbinom(n = nrow(DESeq_d), mu = assays(DESeq_d)$mu[,j], size = dispersions(DESeq_d))
+      }
     }
     
-    rownames(newCounts) = rownames(CountData)
-    colnames(newCounts) = colnames(CountData)
+    if(anyNA(newCounts)) newCounts[is.na(newCounts)] = 0
     
+    # --- Normalization ---
     if(normalization == "deseq"){
       if(is.null(design)){
         design = as.formula("~batch + group")
       }
-      DESeq_new = DESeqDataSetFromMatrix(newCounts,
-                                         coldata, design=design)
-      DESeq_new = estimateSizeFactors(DESeq_new)
-      DESeq_new = estimateDispersions(DESeq_new)
-      
-      #print("error happens here?")
-      vst_new = assay(vst(DESeq_new))
+      # Suppress messages to keep parallel logs clean
+      suppressMessages({
+        DESeq_new = DESeqDataSetFromMatrix(newCounts, coldata, design=design)
+        DESeq_new = estimateSizeFactors(DESeq_new)
+        DESeq_new = estimateDispersions(DESeq_new)
+        vst_new = assay(vst(DESeq_new))
+      })
     } else if(normalization == "scuttle"){
-      print("normalizing single cell data")
-      se <- SingleCellExperiment(assays=list(counts = newCounts),
-                                 colData=DataFrame(coldata))
-      
+      se <- SingleCellExperiment(assays=list(counts = newCounts), colData=DataFrame(coldata))
       se = logNormCounts(se)
-      vst_new = logcounts(se)
+      vst_new = logcounts(se) # Result is a matrix
     }
-    #print("1")
     
-    if(corrMethod == "combat"){
-      correction = ComBatAL(vst_new, batch = batches, mod = mod)$data
-    } else if (corrMethod == "clustercenter"){
-      correction = ClusterCenter(vst_new, batches)
-    }
-    #print("2")
-    if(dilute_samples == TRUE){
-      series = diluteSeries2(correction, groups, perc = levels)
-    } else {
-      
-      series = diluteSeries(vst_new, correction, batches, perc = levels)
-    }
-    #print("3")
-    series = lapply(series, function(d) d[which(rowSds(d) > 1e-6),])
-    dists = lapply(series, function(d) GetDistMatrix(d, dist_method = "pearson"))
-    #print("4")
-    #series = series
-    #metrics = c("F-score", "Davies-Bouldin", "kBET", "kNN", "KL-divergence", "Silhouette", "kNN", "mindist")
+    # 1. Keep genes with variance > 0
+    keep_genes <- which(rowSds(vst_new) > 1e-6)
+    vst_subset <- vst_new[keep_genes, ]
     
-    tmp_bio = list()
-    tmp_batch = list()
-    tmp_ratio = list()
+    # --- Batch Correction ---
+    if(corrMethod == "ComBat"){
+      # Use tryCatch to handle ComBat failures gracefully
+      correction_subset <- tryCatch({
+        sva::ComBat(dat = vst_subset, batch = batches, mod = mod)
+      }, error = function(e) {
+        return(vst_subset) # Fallback: No correction if ComBat fails
+      })
+    } else if (corrMethod == "limma"){
+      correction_subset = limma::removeBatchEffect(vst_subset, batch = batches, group = factor(groups))
+    } else if (corrMethod == "harmony"){
+      usePCA = FALSE
+      pca_res <- prcomp(t(vst_subset), rank. = nPCs, scale. = TRUE, center = TRUE)
+      vst_subset <- t(pca_res$x) 
+      correction_subset = t(harmony::RunHarmony(vst_subset, coldata, 'batch', verbose = FALSE))
+    }
+    
+    if(all(abs(correction_subset - vst_subset) < 1e-10)) { warning("ComBat did not modify data") }
+    
+    
+    vst_new <- vst_subset
+    correction <- correction_subset
+    
+    # we process one level 'p', calculate metrics, and discard the data.
     
     biol.groups = groups
-    scaledF = FALSE
-    print("computing metrics")
-
-    for(m in metrics){
-      if(m == "F-score" | m == "scaled F-score"){
+    bFactor = as.factor(as.numeric(as.factor(batches)))
+    groupFactor = as.factor(as.numeric(as.factor(biol.groups)))
+    
+    # Initialize storage for this iteration
+    iter_bio = list()
+    iter_batch = list()
+    iter_ratio = list()
+    
+    dilute_all = function(data, correct, p) (p)*correct + (1-p)*data
+    
+    # Loop over ADS levels sequentially
+    for(ix in seq_along(levels)){
+      
+      p <- levels[ix]
+      
+      
+      d_p = dilute_all(vst_new, correction, p)
+      
+      if(dilute_samples == TRUE){
+        d_p <- ADS_A(correction, groups, p = p) 
+      } 
+      
+      # Filter low variance rows (memory efficient subsetting)
+      #if(corrMethod != "harmony"){ 
+       # d_p <- d_p[which(rowSds(d_p) > 1e-6), , drop=FALSE]
+      #}
+      # 2. Dimensionality Reduction (Optional but HIGHLY recommended for SC)
+      #print(usePCA)
+      if(usePCA && nrow(d_p) > nPCs){
+        # Calculate PCA and use it for distances/kBET
+        pca_res <- prcomp(t(d_p), rank. = nPCs, scale. = TRUE, center = TRUE)
+        data_for_dist <- t(pca_res$x) # Transpose because GetDistMatrix expects Genes x Samples
+        # Note: kBET usually expects Samples x PCs. 
+        # You might need to adjust kBET calls if using PCA to pass t(data_for_dist)
+      } else {
+        data_for_dist <- d_p
+      }
+      #print(dim(d_p))
+      # 3. Calculate Distance Matrix (Once per level)
+      # Force use of fast correlation if available in your Metrics.R logic
+      dist_p <- GetDistMatrix(data_for_dist, dist_method = "pearson", fastCor = TRUE)
+     
+      if(corrMethod != "harmony"){ 
+        doPCA = FALSE
+      } else {
+        doPCA = usePCA
+      }
+      
+      # 4. Compute Metrics for this level
+      # (Logic copied and adapted to work on single item instead of list)
+      print("computing metrics")
+      for(m in metrics){
+        res_bio <- NA
+        res_batch <- NA
         
-        if(m == "scaled F-score"){
-          scaledF = TRUE
+        # Distance-based metrics
+        if(m %in% c("F-score", "Davies-Bouldin", "Chi-square", "KL-divergence", "Silhouette", "kNN", "mindist")){
+          if(m == "F-score") {
+            res_batch = getFscore(dist_p, batches, scaled = FALSE)
+            res_bio = getFscore(dist_p, biol.groups, scaled = FALSE)
+          } else if(m == "Davies-Bouldin") {
+            res_batch = DaviesBouldinIndex(dist_p, batches)
+            res_bio = DaviesBouldinIndex(dist_p, biol.groups)
+          } else if(m == "kNN") {
+            res_batch = getKNNprop(dist_p, batches) # Assuming non-list wrapper exists or using sapply logic
+            res_bio = getKNNprop(dist_p, biol.groups)
+          } else if(m == "mindist") {
+            res_batch = avgMinDist(dist_p, batches)
+            res_bio = avgMinDist(dist_p, biol.groups)
+          }
+          # Add other distance metrics here...
         }
         
-        ###Compute F-scores for biol. and batch signal
-        fbatch = getFscores(dists, batches, scaled = scaledF)
-        fbio = getFscores(dists, biol.groups, scaled = scaledF)
-        tmp_bio[[m]] = fbio
-        tmp_batch[[m]] = fbatch
-        tmp_ratio[[m]] = fbio/fbatch
-      }
-      
-      if(m == "Davies-Bouldin"){
-        
-        ###Compute Davies-Bouldin indices
-        
-        db_batches = DaviesBouldinScores(dists, batches)
-        dbs = DaviesBouldinScores(dists, biol.groups)
-        tmp_bio[[m]] = dbs
-        tmp_batch[[m]] = db_batches
-        tmp_ratio[[m]] = dbs/db_batches
-      }
-      
-      if(m == "Chi-square"){
-        ###Compute chi-square p-values for clustered data
-        
-        chisq_bio = getChisq(dists, biol.groups)
-        chisq_batch = getChisq(dists, batches)
-        
-        tmp_bio[[m]] = chisq_bio$pvals
-        tmp_batch[[m]] =  chisq_batch$pvals
-        tmp_ratio[[m]] = chisq_bio$pvals/chisq_batch$pvals
-        
-      }
-      
-      if(m == "kBET"){
-        ###Compute kBET rejection rates
-        
-        batch.estimates = sapply(series, function(d) kBET(t(d), batches)$summary[1,2])
-        bio.estimates = sapply(series, function(d) kBET(t(d), biol.groups)$summary[1,2])
-        
-        tmp_bio[[m]] = bio.estimates
-        tmp_batch[[m]] = batch.estimates
-        tmp_ratio[[m]] =  bio.estimates/batch.estimates
-      }
-      
-      if(m == "KL-divergence"){
-        ###Compute Kullback-Leibler divergence of between and within cluster densities
-        
-        kld_bio = getKLdistances(dists, biol.groups)
-        kld_batch = getKLdistances(dists, batches)
-        
-        tmp_bio[[m]] = kld_bio
-        tmp_batch[[m]] =  kld_batch
-        tmp_ratio[[m]] = kld_bio/kld_batch
-      }
-      
-      if(m == "Silhouette"){
-        silh_bio = getSilhouettes(dists, biol.groups)
-        silh_batch = getSilhouettes(dists, batches)
-        
-        tmp_bio[[m]] = silh_bio
-        tmp_batch[[m]] = silh_batch
-        tmp_ratio[[m]] = silh_bio/silh_batch
-      }
-      
-      if(m == "kNN"){
-        props_batch = kNN_proportions(dists, batches)
-        
-        props_bio = kNN_proportions(dists, biol.groups)
-        
-        tmp_bio[[m]] =  props_bio
-        tmp_batch[[m]] = props_batch
-        tmp_ratio[[m]] = props_bio/props_batch
-      }
-      
-      
-      if(m == "mindist"){
-        
-        dist_bio = getMinDists(dists, biol.groups)
-        dist_batch = getMinDists(dists, batches)
-        
-        tmp_bio[[m]] =  dist_bio
-        tmp_batch[[m]] =  dist_batch
-        tmp_ratio[[m]] = dist_bio/dist_batch
-        
-      }
-      
-      if(m %in% c("avedist", "kldist","sepscore","skewdiv","pvca", "gPCA")){
-        bFactor = as.factor(as.numeric(as.factor(batches)))
-        groupFactor = as.factor(as.numeric(as.factor(biol.groups)))
-        #series = series
-        
-        if(m == "avedist"){
-          aveDists_bio = sapply(series, function(d) avedist(t(d), groupFactor))
-          aveDists_batch = sapply(series, function(d) avedist(t(d), bFactor))
+        # Data-based metrics (kBET, CMS, etc)
+        # Note: kBET is slow. If using PCA, pass t(data_for_dist) which is Samples x PCs
+        if(m == "kBET"){
+          # kBET expects Samples x Features
+          k_data <- t(data_for_dist) 
           
-          
-          tmp_bio[[m]] =  aveDists_bio
-          tmp_batch[[m]] =  aveDists_batch
-          tmp_ratio[[m]] =  aveDists_bio/aveDists_batch
+      
+          res_batch = getkBET(k_data, batches, do.pca = doPCA)
+          res_bio = getkBET(k_data, biol.groups, do.pca = doPCA)
+        }
+        
+        if(m == "CMS"){
+          # CMS usually runs on SCE object
+          res_batch = getCMS(d_p, batches, doPCA = doPCA)
+          res_bio = getCMS(d_p, biol.groups, doPCA = doPCA)
         }
         
         if(m == "kldist"){
           
-          klDists_bio = sapply(series, function(d){
-            kldist(t(d), groupFactor)
-          })
-          klDists_batch = sapply(series, function(d) kldist(t(d), bFactor))
-          
-          tmp_bio[[m]] =  klDists_bio
-          tmp_batch[[m]] =  klDists_batch
-          tmp_ratio[[m]] =  klDists_bio/klDists_batch
+   
+          res_bio = kldist(t(data_for_dist), groupFactor)
+          res_batch = kldist(t(data_for_dist), bFactor)
+         
         }
         
-        if(m == "sepscore"){
-          sepDists_bio = sapply(series, function(d) sepscore(t(d), groupFactor))
-          sepDists_batch = sapply(series, function(d) sepscore(t(d), bFactor))
-          
-          tmp_bio[[m]] =  sepDists_bio
-          tmp_batch[[m]] = sepDists_batch
-          tmp_ratio[[m]] =  sepDists_bio/sepDists_batch
-        }
-        
-        if(m == "skewdiv"){
-          aveDists_bio = sapply(series, function(d) skewdiv(t(d), groupFactor))
-          aveDists_batch = sapply(series, function(d) skewdiv(t(d), bFactor))
-          
-          
-          tmp_bio[[m]] =  aveDists_bio
-          tmp_batch[[m]] =  aveDists_batch
-          tmp_ratio[[m]] = aveDists_bio/aveDists_batch
-        }
-        
-        if(m == "pvca"){
-          aveDists_bio = sapply(series, function(d) pvcam(t(d), groupFactor, y = as.factor(as.numeric(as.factor(y)))))
-          aveDists_batch = sapply(series, function(d) pvcam(t(d), bFactor, y = as.factor(as.numeric(as.factor(y)))))
-          
-          
-          tmp_bio[[m]] = aveDists_bio
-          tmp_batch[[m]] = aveDists_batch
-          tmp_ratio[[m]] =  aveDists_bio/aveDists_batch
-        }
+     
         
         if(m == "gPCA"){
-          gpcaBio = sapply(series, function(d) gPCA_percentage(d, biol.groups, nperm = 250))
-          gpcaBatch = sapply(series, function(d) gPCA_percentage(d, batches, nperm = 250))
           
-          tmp_bio[[m]] =  gpcaBio
-          tmp_batch[[m]] =  gpcaBatch
-          tmp_ratio[[m]] =  gpcaBio/gpcaBatch
+          res_bio = gPCA_percentage(d_p, biol.groups, nperm = 250)
+          res_batch = gPCA_percentage(d_p, batches, nperm = 250)
+          
         }
         
+        # Store results
+        if(is.null(iter_bio[[m]])) iter_bio[[m]] <- numeric(length(levels))
+        if(is.null(iter_batch[[m]])) iter_batch[[m]] <- numeric(length(levels))
+        if(is.null(iter_ratio[[m]])) iter_ratio[[m]] <- numeric(length(levels))
+        
+        # Find index of p
+        #idx <- which(levels == p)
+        iter_bio[[m]][ix] <- res_bio
+        iter_batch[[m]][ix] <- res_batch
+        iter_ratio[[m]][ix] <- res_bio / res_batch
       }
       
-      
-      ###to-do: add some other metrics (principal variance components, etc.)
-      
+      # Clean up heavy objects immediately
+      #print(ix)
+      rm(d_p, dist_p, data_for_dist)
+      gc(verbose=FALSE) 
     }
-    
-    list(bio = tmp_bio,
-         batch = tmp_batch,
-         ratio = tmp_ratio)
-    
-  }, mc.cores = nCores)
-  
-  #stopCluster(cl)
-  
-  #result is a list with 100 elements, each element has 3 lists with results for m metric each
-  bio_results = lapply(result, function(r) r[["bio"]])
-  batch_results = lapply(result, function(r) r[["batch"]])
-  ratio_results = lapply(result, function(r) r[["ratio"]])
-  
-  reslist = lapply(list(biol.signal = bio_results, batch.signal = batch_results, ratio = ratio_results), function(b){
-    metrics = names(b[[1]])
-    res = lapply(metrics, function(m){
-      restable = NULL
-      #print(length(b))
-      for(i in 1:length(b)){
-        #print(b[[i]])
-        if(!is.null(b[[i]])){
-          #print(b[[i]][[m]])
-          restable = rbind(restable, b[[i]][[m]])
-        }
-      }
-      restable
-    })
-    names(res) = metrics
-    res
-  })
-  
-  names(reslist) = c("biol.signal", "batch.signal", "ratio")
-  
-  return(reslist)
-  
-  #method_names = paste(levels, corrMethod)
-  
-  #tmp_bio = lapply(tmp_bio, setNames, nm = method_names)
-  #tmp_batch = lapply(tmp_batch, setNames, nm = method_names)
-  #tmp_ratio = lapply(tmp_ratio, setNames, nm = method_names)
-  
+    print(paste(i, "/", iters))
+    return(list(bio = iter_bio, batch = iter_batch, ratio = iter_ratio))
+  }
+
+	if(parallel){
+  # Run in parallel
+  	result = mclapply(1:iters, run_iteration, mc.cores = nCores)
+  } else {
+  	result = lapply(1:iters, run_iteration)
+  }
+  return(result)
 }
 
 
