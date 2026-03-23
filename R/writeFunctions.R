@@ -93,35 +93,6 @@ Ftest2 = function(data, test = "AOV", alternative = "increasing"){
 
 
 
-write_results = function(Results, filename, score = "ratio", levels = seq(0,1, by=0.1), metrics = NULL, latex = FALSE){
-  for(i in 1:length(Results)){
-  res_data = Results[[i]]
-  if(is.null(metrics)){
-    metrics = names(res_data$results[[score]])
-  }
-  scoresdf = data.frame(matrix(ncol = length(metrics), nrow = 0))
-  #colnames(scoresdf) = metrics
-  
-  
-  pears = rankCorrelations(res_data$results, type = "pearson", score = score, levels = levels, metrics = metrics)$estimates
-  spearman = rankCorrelations(res_data$results, score = score, levels = levels, metrics = metrics)$estimates
-  scoresdf = rbind(scoresdf, pears)
-  scoresdf = rbind(scoresdf, spearman)
-  sign = c(-1,1)[(score == "batch.signal") + 1]
-  scoresdf = rbind(scoresdf, rank(sign*spearman))
-  #scoresdf = rbind(scoresdf, rank(-(log(jtScores)*spearman)))
-  colnames(scoresdf) = metrics
-  rownames(scoresdf) = c("Pearson correlation",  
-                         "Rank correlation", 
-                         "Ranking")
-  
- if(latex == TRUE){
-   writeLatexTable(round(scoresdf, digits = 3), filename = paste(names(Results)[i], filename, sep = "_"))
- } else {
-    write.table(round(scoresdf, digits = 3), file = paste(names(Results)[i], filename, sep = "_"))
- }
-  }
-}
 
 writeLatexTable = function(table, filename){
   fileConn = file(filename)
@@ -139,27 +110,5 @@ writeLatexTable = function(table, filename){
 }
 
 
-write_results2 = function(res_data, filename = "rankCorrelations.txt"){
-  
-  metrics = names(res_data[[1]])
-  scoresdf = data.frame(matrix(ncol = length(metrics), nrow = 0))
-  for(type in c("biol.signal", "batch.signal", "ratio")){
-  
-  #colnames(scoresdf) = metrics
-  
-  #scores1 = sapply(metrics, function(i) Ftest2(t(res_data$results[[type]][[i]])))
-  scoresdf = rbind(scoresdf, rankCorrelations(res_data, 1:11, type = type)$estimates * ifelse(type == "batch.signal", -1, 1))
-  #print(fscores1)
-  #scoresdf = rbind(scoresdf, log(fscores1))
-  #scoresdf = rbind(scoresdf, rankCorrelations(res_data$results, 1:11)$estimates * log(fscores1))
-  
-  }
-  colnames(scoresdf) = metrics
-  rownames(scoresdf) = c("bio", "batch", "ratio")
-  
-  
-  write.table(round(scoresdf, digits = 3), file = filename)
-  return(round(scoresdf, digits = 3))
-}
 
 
