@@ -541,12 +541,13 @@ QC_resample = function(CountData, coldata = NULL, batches, groups,
       
       if(dilute_samples == TRUE){
         d_p <- ADS_A(correction, groups, p = p) 
-      } 
+      } else {
+		d_p = dilute_all(vst_new, correction, p)
+
+	  }
       
       # Filter low variance rows (memory efficient subsetting)
-      #if(corrMethod != "harmony"){ 
-       # d_p <- d_p[which(rowSds(d_p) > 1e-6), , drop=FALSE]
-      #}
+   
       # 2. Dimensionality Reduction (Optional but HIGHLY recommended for SC)
       #print(usePCA)
       if(usePCA && nrow(d_p) > nPCs){
