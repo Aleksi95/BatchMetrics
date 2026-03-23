@@ -36,6 +36,20 @@ rankCorrelations = function(resdata, type = "spearman", score = "ratio", levels 
   return(list(estimates = meanCorrs, p.values = pvalues))
 }
 
+rankCorrs2 = function(resdata, metrics = NULL, types = NULL){
+  if(is.null(metrics)) metrics = names(resdata[[1]][[1]])
+  if(is.null(types)) types = names(resdata[[1]])
+  
+  sapply(metrics, function(m) {
+    sapply(types, function(t){
+      mscores = as.vector(sapply(resdata, function(l) l[[t]][[m]]))
+      ranks = rep(1:11, length(resdata))
+      rcor = cor.test(mscores, ranks, method = "spearman")$estimate * ifelse(t == "batch", -1, 1)
+    })
+  })
+}
+
+
 
 #Ftest2 = function(data){
 #  data = cbind(group = as.factor(1:nrow(data)), as.data.frame(data))
