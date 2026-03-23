@@ -1,4 +1,5 @@
 
+#
 # You can learn more about package authoring with RStudio at:
 #
 #   http://r-pkgs.had.co.nz/
@@ -9,6 +10,9 @@
 #   Check Package:             'Ctrl + Shift + E'
 #   Test Package:              'Ctrl + Shift + T'
 
+#'@importFrom kBET kBET
+#'@importFrom CellMixS cms
+#'@importFrom SingleCellExperiment SingleCellExperiment
 #'@importFrom FNN get.knn
 #'@importFrom stats model.matrix
 #'@importFrom stats dist
@@ -21,10 +25,11 @@
 #'@importFrom FNN KL.dist
 #'@importFrom FNN KL.divergence
 #'@importFrom limma plotMDS
+#'@importFrom WGCNA corFast
 
 ###BatchMetrics package 2021
 #
-##Authors: Petri TÃ¶rÃ¶nen, Aleksi Laiho
+##Authors: Petri TÃÂ¶rÃÂ¶nen, Aleksi Laiho
 #
 #
 #Functions to measure group separation in batch correction and metrics to measure batch correction
@@ -42,7 +47,7 @@ toSymmetric = function(dist, lower = TRUE){
 
 requireNamespace("limma")
 
-GetDistMatrix <- function(Data, dist_method = "pearson"){
+#GetDistMatrix <- function(Data, dist_method = "pearson", fastCor = FALSE){
 
   # Function for calculating pair-wise distance matrix
   # of samples
@@ -55,31 +60,69 @@ GetDistMatrix <- function(Data, dist_method = "pearson"){
   # ("euclidean","manhattan","pearson","spearman")
 
   #data should NOT contain NAs, because of the methods used
-  if(any(is.na(Data))){
-    stop("Data should not contain NAs!")
-  }
+ # if(any(is.na(Data))){
+  #  stop("Data should not contain NAs!")
+  #}
+  
+  #Data = Data[rowSums(Data) > 0,]
 
 
   # Create DistMatrix
-  if(dist_method == "euclidean" | dist_method == "manhattan"){
+  #if(dist_method == "euclidean" | dist_method == "manhattan"){
     #print(paste(dist_method,"distance used"))
-    DistMatrix <- as.matrix(dist(t(Data), method = dist_method))
-  }
-  else if(dist_method == "pearson" | dist_method == "spearman"){
+   # DistMatrix <- as.matrix(dist(t(Data), method = dist_method))
+  #}
+  #else if(dist_method == "pearson" | dist_method == "spearman"){
     #print(paste(dist_method,"distance used"))
-    DistMatrix <- (1-cor(Data, method = dist_method))
-  } else if(dist_method == "MDS"){
+   # if(fastCor == TRUE){
+    #  DistMatrix <- (1-HiClimR::fastCor(Data, nSplit = 10, upperTri = TRUE, verbose = FALSE, optBLAS = FALSE))
+      
+    #} else {
+     # DistMatrix <- (1-cor(Data, method = dist_method))
+      
+    #}
+    
+  #} else if(dist_method == "MDS"){
     #select 500 top genes with highest log-fold changes to compute dist matrix
     #counter curse of dimensionality
-    DistMatrix = toSymmetric(plotMDS(Data, plot = FALSE)$distance.matrix)
+   # DistMatrix = toSymmetric(plotMDS(Data, plot = FALSE)$distance.matrix)
 
-  }
+  #}
   # Do we want include other methods?
   #
   # See Jaskowiak, Campello, Costa (2014) BMC Bioinformatics
   # for alternatives
-  return(DistMatrix)
+  #return(DistMatrix)
 
+#}
+
+GetDistMatrix <- function(Data, dist_method = "pearson", fastCor = TRUE){
+  # ...
+  #data should NOT contain NAs, because of the methods used
+   if(any(is.na(Data))){
+    stop("Data should not contain NAs!")
+  }
+  #print(dim(Data))
+  #Data = Data[rowSums(Data) > 0,]
+  #print(dim(Data))
+  
+  
+  if(dist_method == "pearson" | dist_method == "spearman"){
+    if(fastCor == TRUE && requireNamespace("WGCNA", quietly = TRUE)){
+      # WGCNA cor is significantly faster for large matrices
+      #DistMatrix <- (1 - WGCNA::cor(t(Data), method = dist_method, use = "p")) 
+      # Note: WGCNA::cor expects samples as rows if you want cor between columns, 
+      # but Data is usually Genes x Samples.
+      # Ensure orientation matches your existing 'cor' usage. 
+      # Standard R cor(Data) computes cor between columns (Samples). 
+      # WGCNA::cor(Data) also computes cor between columns.
+      DistMatrix <- (1 - WGCNA::cor(Data, method = dist_method)) 
+    } else {
+      DistMatrix <- (1-cor(Data, method = dist_method))
+    }
+  }
+  # ...
+  return(DistMatrix)
 }
 
 
@@ -100,8 +143,21 @@ SeparateDistTypes <- function(SampleTypes){
 
 }
 
-
-
+getCMS = function(data, batchvar, k =50, doPCA = FALSE){
+  #check if PCA already done
+  if(doPCA){
+    Assay = SimpleList(logcounts = data)
+    dimred = SimpleList()
+  } else {
+    Assay = SimpleList(logcounts= data)
+    dimred = SimpleList(PCA = t(data))
+  }
+  sce = SingleCellExperiment(assays = Assay, 
+                             reducedDims = dimred,
+                             colData = DataFrame(batch = factor(batchvar)))
+  sce_cms = CellMixS::cms(sce, k, group = "batch", dim_red = "PCA")
+  return(mean(colData(sce_cms)[,2]))
+}
 
 DaviesBouldinIndex <- function(dist, sample_types){
 
@@ -219,14 +275,14 @@ getFscore = function(dist, sample_types, scaled = TRUE, quantile = 0.5){
 
   if(scaled == TRUE){
     dist = apply(dist, 1, function(x) x/(quantile(x, quantile)))
-  }
-
+  } 
+  
   DistTypeMatrix = SeparateDistTypes(sample_types)
-
-
+  
+  
   BetweenClust = sum(dist[DistTypeMatrix == 0])
   WithinClust = sum(dist[DistTypeMatrix > 0])
-
+  
   return(BetweenClust/WithinClust)
 
 
@@ -285,6 +341,22 @@ getChisq = function(dists, sample_types){
     pvals = c(pvals, chisq_test$p.value)
   }
   return(list(statistics = statistics, pvals =pvals))
+}
+
+###run kBET algorithm (BÃÂ¼ttner et al, 2019), a kNN-based metric for cluster separation, neighbourhood size is determined as the mean batch size
+##INPUT: distance matrix or a list of distance matrices, sample type vector containing the biological or batch labels of interest
+
+##OUTPUT: kBET rejection rate (see BÃÂ¼ttner et al 2019) and average p-value
+
+getkBET = function(data, batch, do.pca = TRUE){
+  require('FNN')
+  # data: a matrix (rows: samples, columns: features (genes))
+  k0=floor(mean(table(batch))) #neighbourhood size: mean batch size 
+  knn <- get.knn(data, k=k0, algorithm = 'cover_tree')
+  
+  #now run kBET with pre-defined nearest neighbours.
+  batch.estimate <- kBET(data, batch, k = k0, knn = knn, do.pca = do.pca, plot=FALSE)
+  batch.estimate$summary$kBET.observed[1]
 }
 
 
@@ -448,159 +520,158 @@ EffectSizeEstimate = function(data, sample_types, dim.reduct.method = "MDS"){
 }
 
 gPCA.batchdetect <-
-  function(x,batch,filt=NULL,nperm=1000,center=FALSE,scaleY=FALSE,seed=NULL){
+function(x,batch,filt=NULL,nperm=1000,center=FALSE,scaleY=FALSE,seed=NULL){
+	
+	# x : n x p matrix of genomic data
+	# batch : length n vector indicating batch for each sample
+	# filt : number of features to retain after filtering
+	# nperm : number of permutations to perform during the permutation test
+	# x2.imp : optional centered data matrix with imputed missing values 
+ 	# center : logical, is the data centered?
+ 	# scaleY : should Y be scaled based on number of samples in each batch?
+ 	# seed : ability to set the seed for random sampling
+if(!is.null(seed)){set.seed(seed)}
 
-    # x : n x p matrix of genomic data
-    # batch : length n vector indicating batch for each sample
-    # filt : number of features to retain after filtering
-    # nperm : number of permutations to perform during the permutation test
-    # x2.imp : optional centered data matrix with imputed missing values
-    # center : logical, is the data centered?
-    # scaleY : should Y be scaled based on number of samples in each batch?
-    # seed : ability to set the seed for random sampling
-    if(!is.null(seed)){set.seed(seed)}
+# Permute batch:	
+permute<-matrix(NA,ncol=length(batch),nrow=50000)
+for (j in 1:50000) {permute[j,]<-sample(batch,replace=FALSE)}
+samp<-sample(1:dim(permute)[1],nperm,replace=FALSE)
+permute.samp<-permute[samp,]
+	
+# Center data:
+if(center==FALSE) {
+	x2<-scale(x,center=T,scale=F)
+	} else {
+		x2<-x
+	}
+	
+# Test for missing values, impute if missing:
+# (save imputed x2 in working directory so don't have to run it again)	
+if(sum(is.na(x))>0) { 
+		missing<-readline(prompt="Missing values detected. Continue with mean value imputation? (Note this may take a very long time, but it will automatically save in your working dir so you don't have to ever run it again.) [y/n] ")
+		if (substr(missing,1,1)=="n") {
+			stop("The PC cannot be calculated with missing values.")
+		} else {
+			x2.imp<-ifelse(is.na(x2),rowMeans(x2,na.rm=TRUE),x2)
+			save(x2.imp,"x2.imputed.RData")
+		}		
+} else {
+	x2.imp<-x2
+}
 
-    # Permute batch:
-    permute<-matrix(NA,ncol=length(batch),nrow=50000)
-    for (j in 1:50000) {permute[j,]<-sample(batch,replace=FALSE)}
-    samp<-sample(1:dim(permute)[1],nperm,replace=FALSE)
-    permute.samp<-permute[samp,]
+# Filter data:
+if(is.null(filt)){ 
+	data.imp<-x2.imp
+	} else {
+		sd<-apply(x2.imp,2,sd)
+		rank<-rank(sd)
+		keep<-(1:length(sd))[rank %in% (length(rank)-filt+1):length(rank)]
+		data.imp<-x2.imp[,keep]
+	}
+n<-dim(data.imp)[1]
+p<-dim(data.imp)[2]
+b<-length(unique(batch))
+n ; p ; b
+	
+## Test for dimensionality:
+if(length(batch)!=n) {stop("Matrices do not conform: length(batch)!=n")}
 
-    # Center data:
-    if(center==FALSE) {
-      x2<-scale(x,center=T,scale=F)
-    } else {
-      x2<-x
-    }
+# Establish Y matrix indicating batch:
+y<-matrix(nrow=length(batch),ncol=length(unique(batch)))
+for ( j in 1:length(unique(batch)) ){
+	y[,j]<-ifelse(batch==j,1,0)
+}
+if (scaleY==FALSE){
+	y2<-scale(y,center=T,scale=F) #y2.bat
+} else {
+	ys<-matrix(nrow=length(batch),ncol=length(unique(batch)))
+	nk<-apply(y,2,sum)
+	for ( j in 1:length(unique(batch)) ){
+		ys[,j]<-ifelse(batch==j,1/nk[j],0)
+	}
+	y2<-scale(ys,center=F,scale=F) #y2.bat
+}
 
-    # Test for missing values, impute if missing:
-    # (save imputed x2 in working directory so don't have to run it again)
-    if(sum(is.na(x))>0) {
-      missing<-readline(prompt="Missing values detected. Continue with mean value imputation? (Note this may take a very long time, but it will automatically save in your working dir so you don't have to ever run it again.) [y/n] ")
-      if (substr(missing,1,1)=="n") {
-        stop("The PC cannot be calculated with missing values.")
-      } else {
-        x2.imp<-ifelse(is.na(x2),rowMeans(x2,na.rm=TRUE),x2)
-        save(x2.imp,"x2.imputed.RData")
-      }
-    } else {
-      x2.imp<-x2
-    }
+# Unguided SVD:
+svd.x<-svd(data.imp)
 
-    # Filter data:
-    if(is.null(filt)){
-      data.imp<-x2.imp
-    } else {
-      sd<-apply(x2.imp,2,sd)
-      rank<-rank(sd)
-      keep<-(1:length(sd))[rank %in% (length(rank)-filt+1):length(rank)]
-      data.imp<-x2.imp[,keep]
-    }
-    n<-dim(data.imp)[1]
-    p<-dim(data.imp)[2]
-    b<-length(unique(batch))
-    n ; p ; b
+### Variance of unguided PCs
+PC.u<-data.imp%*%svd.x$v
+var.x<-var(PC.u)
+varPCu1<-diag(var.x)[1]/sum(diag(var.x))
+cumulative.var.u<-numeric()
+for( i in 1:dim(var.x)[1] ){
+cumulative.var.u[i]<-sum(diag(var.x)[1:i])/sum(diag(var.x))
+}
 
-    ## Test for dimensionality:
-    if(length(batch)!=n) {stop("Matrices do not conform: length(batch)!=n")}
+# Guided SVD:
+svd.bat<-svd(t(y2)%*%data.imp)
 
-    # Establish Y matrix indicating batch:
-    y<-matrix(nrow=length(batch),ncol=length(unique(batch)))
-    for ( j in 1:length(unique(batch)) ){
-      y[,j]<-ifelse(batch==j,1,0)
-    }
-    if (scaleY==FALSE){
-      y2<-scale(y,center=T,scale=F) #y2.bat
-    } else {
-      ys<-matrix(nrow=length(batch),ncol=length(unique(batch)))
-      nk<-apply(y,2,sum)
-      for ( j in 1:length(unique(batch)) ){
-        ys[,j]<-ifelse(batch==j,1/nk[j],0)
-      }
-      y2<-scale(ys,center=F,scale=F) #y2.bat
-    }
+### Variance of guided PCs
+PC.g<-data.imp%*% svd.bat$v
+var.bat<-var(PC.g)
+varPCg1<-diag(var.bat)[1]/sum(diag(var.bat))
+cumulative.var.g<-numeric()
+for( i in 1:dim(var.bat)[1] ){
+cumulative.var.g[i]<-sum(diag(var.bat)[1:i])/sum(diag(var.bat))
+}
 
-    # Unguided SVD:
-    svd.x<-svd(data.imp)
-
-    ### Variance of unguided PCs
-    PC.u<-data.imp%*%svd.x$v
-    var.x<-var(PC.u)
-    varPCu1<-diag(var.x)[1]/sum(diag(var.x))
-    cumulative.var.u<-numeric()
-    for( i in 1:dim(var.x)[1] ){
-      cumulative.var.u[i]<-sum(diag(var.x)[1:i])/sum(diag(var.x))
-    }
-
-    # Guided SVD:
-    svd.bat<-svd(t(y2)%*%data.imp)
-
-    ### Variance of guided PCs
-    PC.g<-data.imp%*% svd.bat$v
-    var.bat<-var(PC.g)
-    varPCg1<-diag(var.bat)[1]/sum(diag(var.bat))
-    cumulative.var.g<-numeric()
-    for( i in 1:dim(var.bat)[1] ){
-      cumulative.var.g[i]<-sum(diag(var.bat)[1:i])/sum(diag(var.bat))
-    }
-
-    # Calculate test statistic delta:
-    delta<-diag(var.bat)[1]/diag(var.x)[1]
-
-
-    ##########################################################
-    ### Begin loop for random sample of batch permutations ###
-    delta.p<-numeric()
-    for ( i in 1:nperm ){
-
-      batch.p<-permute.samp[i,]
-
-      y<-ys<-matrix(nrow=length(batch.p),ncol=length(unique(batch.p)))
-      for ( j in 1:length(unique(batch.p)) ){
-        y[,j]<-ifelse(batch.p==j,1,0)
-      }
-      if (scaleY==FALSE){
-        y2<-scale(y,center=T,scale=F) #y2.bat
-      } else {
-        nk<-apply(y,2,sum)
-        for ( j in 1:length(unique(batch.p)) ){
-          ys[,j]<-ifelse(batch.p==j,1/nk[j],0)
-        }
-        y2<-scale(ys,center=F,scale=F) #y2.bat
-      }
+# Calculate test statistic delta:
+delta<-diag(var.bat)[1]/diag(var.x)[1]
 
 
+##########################################################
+### Begin loop for random sample of batch permutations ###
+delta.p<-numeric()
+for ( i in 1:nperm ){
+	
+batch.p<-permute.samp[i,]
 
-      # Perform gPCA
-      svd.bat.p<-svd(t(y2)%*%data.imp)
+y<-ys<-matrix(nrow=length(batch.p),ncol=length(unique(batch.p)))
+for ( j in 1:length(unique(batch.p)) ){
+	y[,j]<-ifelse(batch.p==j,1,0)
+}
+if (scaleY==FALSE){
+	y2<-scale(y,center=T,scale=F) #y2.bat
+} else {
+	nk<-apply(y,2,sum)
+	for ( j in 1:length(unique(batch.p)) ){
+		ys[,j]<-ifelse(batch.p==j,1/nk[j],0)
+	}
+	y2<-scale(ys,center=F,scale=F) #y2.bat
+}
 
-      var.bat.p<-var(data.imp%*% svd.bat.p$v)
-      PC.g.p<-diag(var.bat.p)[1]/sum(diag(var.bat.p))
-
-      delta.p[i]<- diag(var.bat.p)[1]/diag(var.x)[1]  #Alternative test statistic
 
 
-    } # end of permutation loop
+# Perform gPCA
+svd.bat.p<-svd(t(y2)%*%data.imp)
 
-    p.val<-sum(delta<delta.p)/length(delta.p)
-    p.val
-    p.val<-ifelse(p.val==0,"<0.001",round(p.val,3))
+var.bat.p<-var(data.imp%*% svd.bat.p$v)
+PC.g.p<-diag(var.bat.p)[1]/sum(diag(var.bat.p))
 
-    out<-list(delta=delta,p.val=p.val,delta.p=delta.p,batch=batch,filt=filt,n=n,p=p,b=b,
-              PCg=PC.g,PCu=PC.u,varPCu1=varPCu1,varPCg1=varPCg1,nperm=nperm,
-              cumulative.var.u=cumulative.var.u,
-              cumulative.var.g=cumulative.var.g)
+delta.p[i]<- diag(var.bat.p)[1]/diag(var.x)[1]  #Alternative test statistic
 
-  }
+
+} # end of permutation loop
+
+p.val<-sum(delta<delta.p)/length(delta.p)
+p.val
+p.val<-ifelse(p.val==0,"<0.001",round(p.val,3))
+
+out<-list(delta=delta,p.val=p.val,delta.p=delta.p,batch=batch,filt=filt,n=n,p=p,b=b,
+	PCg=PC.g,PCu=PC.u,varPCu1=varPCu1,varPCg1=varPCg1,nperm=nperm,
+	cumulative.var.u=cumulative.var.u,
+	cumulative.var.g=cumulative.var.g)
+
+}
 
 
 #calculates the percentage of variation explained by batch/biological groups
 gPCA_percentage = function(data, sample_types, nperm = 1000){
-  batch = as.numeric(as.factor(sample_types))
-  out = gPCA.batchdetect(t(data), batch = batch, nperm = nperm)
-  return(((out$varPCg1-out$varPCu1)/out$varPCg1))
+    batch = as.numeric(as.factor(sample_types))
+    out = gPCA.batchdetect(t(data), batch = batch, nperm = nperm)
+    return(((out$varPCg1-out$varPCu1)/out$varPCg1))
 }
-
 
 kldist <-
   function(xba, batch) {
