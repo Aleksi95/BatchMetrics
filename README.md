@@ -69,10 +69,10 @@ metrics = c("F-score", "Davies-Bouldin", "kNN", "gPCA")
 Results = QC_wrapper(counts, batch, group, parallel = FALSE, var_measure = "resampling", iters = 10)
 ```
 
-Write the results in a text file
+Calculate rank correlations
 
 ```{r}
-write_results2(Results$resampling, filename = "results.txt")
+rankCorrs2(Results$resampling)
 ```
 
 Plot the results in a line plot
