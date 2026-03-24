@@ -1,7 +1,3 @@
-requireNamespace("SingleCellExperiment")
-requireNamespace("scuttle")
-requireNamespace("sva")
-requireNamespace("limma")
 
 QC_wrapper = function(CountData, batch, group, y=NULL, metrics = c("F-score", "Davies-Bouldin", "kNN", "mindist", "kldist", "gPCA") , iters = 100, perc = seq(0,1, by = 0.1), corrData = NULL, corrMethod = "ComBat", deseqData = NULL, parallel = TRUE, var_measure = c("bootstrap", "resampling", "bootstrapSamples", "resampleSamples"), cores = 4, design = NULL,  Ctrl_sample = "normal", rnaSeq = "bulk", usePCA = TRUE,
                       nPCs = 50, var.model = "multinom"){

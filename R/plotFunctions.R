@@ -1,7 +1,3 @@
-requireNamespace("ggplot2")
-requireNamespace("reshape2")
-requireNamespace("gridExtra")
-requireNamespace("grid")
 
 
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {

@@ -45,7 +45,6 @@ toSymmetric = function(dist, lower = TRUE){
 
 }
 
-requireNamespace("limma")
 
 #GetDistMatrix <- function(Data, dist_method = "pearson", fastCor = FALSE){
 
@@ -349,7 +348,6 @@ getChisq = function(dists, sample_types){
 ##OUTPUT: kBET rejection rate (see BÃÂ¼ttner et al 2019) and average p-value
 
 getkBET = function(data, batch, do.pca = TRUE){
-  require('FNN')
   # data: a matrix (rows: samples, columns: features (genes))
   k0=floor(mean(table(batch))) #neighbourhood size: mean batch size 
   knn <- get.knn(data, k=k0, algorithm = 'cover_tree')

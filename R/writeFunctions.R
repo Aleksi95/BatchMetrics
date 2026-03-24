@@ -1,8 +1,4 @@
 
-#source("../plotFunctions.R")
-library(pspearman)
-library(reshape2)
-
 meanRankCorr = function(resdata, rank = 1:11){
   corr2 = apply(t(resdata), 2, function(x) spearman.test(x, rank)$estimate)
   return(mean(corr2))
