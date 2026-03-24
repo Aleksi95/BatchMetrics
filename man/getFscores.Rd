@@ -10,7 +10,7 @@ F-scores for multiple datasets
 A wrapper of \code{\link{getFscore}} for multiple datasets.
 }
 \usage{
-getFscores(dists, sample_types, method = "scaled", quantile = 0.5)
+getFscores(dists, sample_types, scaled = TRUE, quantile = 0.5)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -23,8 +23,8 @@ getFscores(dists, sample_types, method = "scaled", quantile = 0.5)
     A sample type vector or a list of vectors containing the cluster labels for the sample types of interest (biological groups or batches).
   }
 
-  \item{method}{
-    The method of computing the f-score (see \code{\link{getFscore}}). one of ("scaled", "stratified" or "group mean")
+  \item{scaled}{
+    Logical. Whether to scale the pairwise distances before computing the f-score (see \code{\link{getFscore}}). Default is TRUE.
   }
 
   \item{quantile}{

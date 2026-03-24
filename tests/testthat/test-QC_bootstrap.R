@@ -1,34 +1,45 @@
 context("QC_bootstrap")
 
-test_that("error message correct nrows", {
-  data1 = matrix(rnorm(10*100,mean=0,sd=1), ncol=10, nrow=100)
-  data2 = matrix(rnorm(10*200,mean=0,sd=1), ncol=10, nrow=200)
-  batch  = sample(1:2, size = 10, replace = TRUE)
-  groups = sample(1:2, size = 10, replace = TRUE)
-  expect_error(QC_bootstrap(list(data1, data2), biol.groups = groups, batches = batch), "Error: datasets should have equal number of rows")
+test_that("DataNorm is first parameter (not data_list)", {
+  expect_true("DataNorm" %in% names(formals(QC_bootstrap)))
+  expect_false("data_list" %in% names(formals(QC_bootstrap)))
 })
 
-test_that("error message NA values", {
-  data1 = matrix(rnorm(10*100,mean=0,sd=1), ncol=10, nrow=100)
-  data1[1,1] <- NA
-  batch  = sample(1:2, size = 10, replace = TRUE)
-  groups = sample(1:2, size = 10, replace = TRUE)
-  expect_error(QC_bootstrap(list(data1), biol.groups = groups, batches = batch), "Error: datasets should not have NA values")
+test_that("function signature contains expected parameters", {
+  params = names(formals(QC_bootstrap))
+  expect_true("biol.groups" %in% params)
+  expect_true("batches" %in% params)
+  expect_true("method_names" %in% params)
+  expect_true("metrics" %in% params)
+  expect_true("iters" %in% params)
+  expect_true("corrMethod" %in% params)
+  expect_true("dilute_samples" %in% params)
+  expect_true("parallel" %in% params)
+  expect_true("usePCA" %in% params)
+  expect_true("nPCs" %in% params)
 })
 
-test_that("error message finite values", {
-  data1 = matrix(rnorm(10*100,mean=0,sd=1), ncol=10, nrow=100)
-  data1[1,1] <- Inf
-  batch  = sample(1:2, size = 10, replace = TRUE)
-  groups = sample(1:2, size = 10, replace = TRUE)
-  expect_error(QC_bootstrap(list(data1), biol.groups = groups, batches = batch), "Error: datasets should contain only finite values")
+test_that("function signature no longer contains removed parameters", {
+  params = names(formals(QC_bootstrap))
+  expect_false("Fscore_method" %in% params)
+  expect_false("savefile" %in% params)
+  expect_false("filename" %in% params)
+  expect_false("plot" %in% params)
 })
 
-test_that("datalist and method names length matches", {
-  data1 = matrix(rnorm(10*100,mean=0,sd=1), ncol=10, nrow=100)
-  batch  = sample(1:2, size = 10, replace = TRUE)
-  groups = sample(1:2, size = 10, replace = TRUE)
-  expect_error(QC_bootstrap(list(data1), biol.groups = groups, batches = batch, method_names = c("1", "2")), "The list of method names has to be of the same length as the data list")
+test_that("default parameter values match documentation", {
+  f = formals(QC_bootstrap)
+  expect_null(f$method_names)
+  expect_equal(as.character(f$dist_method), "pearson")
+  expect_equal(as.logical(f$scaledF), FALSE)
+  expect_equal(as.integer(f$iters), 50L)
+  expect_equal(as.character(f$corrMethod), "ComBat")
+  expect_equal(as.logical(f$dilute_samples), FALSE)
+  expect_equal(as.logical(f$parallel), TRUE)
+  expect_equal(as.integer(f$nCores), 16L)
+  expect_equal(as.logical(f$zeroRows), FALSE)
+  expect_equal(as.logical(f$usePCA), FALSE)
+  expect_equal(as.integer(f$nPCs), 50L)
 })
 
 

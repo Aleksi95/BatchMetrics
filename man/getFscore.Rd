@@ -10,7 +10,7 @@ F-score of cluster separation
   Computes the f-score for cluster separation by two different methods. Higher f-score indicates better cluster separation
 }
 \usage{
-getFscore(dist, sample_types, method = "scaled", quantile = 0.5)
+getFscore(dist, sample_types, scaled = TRUE, quantile = 0.5)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -22,8 +22,8 @@ getFscore(dist, sample_types, method = "scaled", quantile = 0.5)
   A sample type vector containing the cluster labels for the sample types of interest (biological groups or batches)
   }
 
-  \item{method}{
-    String indicating method of computation ("scaled" or "stratified"). Default is "scaled".
+  \item{scaled}{
+    Logical. Whether to scale the pairwise distances by the chosen quantile before computing the f-score. Default is TRUE.
   }
 
   \item{quantile}{
@@ -32,20 +32,13 @@ getFscore(dist, sample_types, method = "scaled", quantile = 0.5)
 }
 \details{
 %%  ~~ If necessary, more details than the description above ~~
-  The "stratified" method computes the f-score as a product of mean distance ratios of within/between cluster distances for each cluster:
-
-  \deqn{
-  F = \prod_{k=1}^K \frac{1/M(\sum_{k \neq n}^M D_{k,n})}{1/M(\sum_{k}^M D_{k,k}}
-  }
-
-  where K is the total number of clusters, M is the size of each cluster and D is the distance matrix.
-
-  The "scaled" method scales each pairwise distances by achosen quantile.
+  When \code{scaled = TRUE} (default), each pairwise distance is scaled by the chosen quantile of each sample's pairwise distances before computing the ratio of between-cluster to within-cluster distances:
 
   \deqn{
   F = \frac{\sum D_{k, j}/Q(D_k)}{\sum D_{k, k}/Q(D_k)}
   }
 
+  When \code{scaled = FALSE}, the unscaled ratio of between-cluster to within-cluster distances is returned.
 
 }
 
@@ -82,7 +75,7 @@ sample_types = sample(1:2, 10, replace = TRUE)
 
 
 #Calculate the metric
-getFscore(dist, sample_types, method = "scaled", quantile = 0.5)
+getFscore(dist, sample_types, scaled = TRUE, quantile = 0.5)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory (show via RShowDoc("KEYWORDS")):
