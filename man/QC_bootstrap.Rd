@@ -10,63 +10,86 @@ Quality control bootstrap analysis
   Compute quality control metrics for batch correction on bootstrap-resampled datasets
 }
 \usage{
-QC_bootstrap(data_list,
+QC_bootstrap(DataNorm,
             biol.groups,
             batches,
             method_names = NULL,
-            metrics = c("F-score",
-                        "Davies-Bouldin",
-                        "kBET", "kNN",
-                        "KL-divergence",
-                        "Silhouette",
-                        "kNN",
-                        "mindist"),
-            Fscore_method = "scaled",
+            metrics = c("F-score", "Davies-Bouldin", "kBET", "kNN"),
+            levels = seq(0, 1, by = 0.1),
+            dist_method = "pearson",
+            scaledF = FALSE,
             iters = 50,
-            savefile = FALSE,
-            filename = "evaluations.csv",
-            plot = FALSE)
+            corrMethod = "ComBat",
+            dilute_samples = FALSE,
+            parallel = TRUE,
+            nCores = 16,
+            zeroRows = FALSE,
+            usePCA = FALSE,
+            nPCs = 50)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{data_list}{
-%%     ~~Describe \code{x} here~~
-  A list of datasets of equal dimensions, for example batch-corrected datasets or different levels of batch correction performed on a single dataset (such as produced by the dilute_series function).
+  \item{DataNorm}{
+  A normalized data matrix (rows are features/genes, columns are samples) to compute bootstrap quality control metrics on.
 }
   \item{biol.groups}{
-    A vector containing the cluster labels of the biological variables of interest, the length of columns of the datasets.
+    A vector containing the cluster labels of the biological variables of interest, the length of columns of the dataset.
   }
 
   \item{batches}{
-    A vector containing the cluster labels of the batch effect variables of interest, the length of columns of the datasets.
+    A vector containing the cluster labels of the batch effect variables of interest, the length of columns of the dataset.
   }
 
   \item{method_names}{
-    A vector containing the names of batch correction methods used on the different datasets. Default is method 1, method 2 etc.
+    A vector containing the names of batch correction methods. Default is NULL.
   }
 
   \item{metrics}{
-    A vector of strings containing the names of the quality control metrics to run on the datasets. Must be a combination of one or more of the        metrics listed above.
+    A vector of strings containing the names of the quality control metrics to run on the dataset. Must be a combination of one or more of "F-score", "Davies-Bouldin", "kBET", "kNN", "mindist", "kldist", "gPCA", "CMS".
   }
 
-  \item{Fscore_method}{
-    (String) A method for computing the f-score metric (see \code{\link{getFscores}}). Must be one of "stratified", "scaled", or "group mean". Default is "scaled".
+  \item{levels}{
+    A numeric vector of batch correction levels (proportions between 0 and 1) to evaluate. Default is \code{seq(0, 1, by = 0.1)}.
+  }
+
+  \item{dist_method}{
+    String denoting the distance method to use for computing the distance matrix. Default is "pearson".
+  }
+
+  \item{scaledF}{
+    Logical. Whether to use scaled F-score. Default is FALSE.
   }
 
   \item{iters}{
     A number of iterations for the bootstrap resampling. Default is 50. NOTE: higher number of iterations may be computationally inefficient.
   }
 
-  \item{savefile}{
-    Logical. Denotes whether the results should be saved in a csv-format, default is FALSE.
+  \item{corrMethod}{
+    String denoting the batch correction method to apply. One of "ComBat", "limma", or "harmony". Default is "ComBat".
   }
 
-  \item{filename}{
-    The name of the csv-file to save.
+  \item{dilute_samples}{
+    Logical. Whether to use sample dilution series instead of gene bootstrapping. Default is FALSE.
   }
 
-  \item{plot}{
-    Logical. Denotes whether the function automatically produces a boxplot of the bootstrap results. Default is FALSE.
+  \item{parallel}{
+    Logical. Whether to run bootstrap iterations in parallel. Default is TRUE.
+  }
+
+  \item{nCores}{
+    Integer. Number of parallel cores to use when \code{parallel = TRUE}. Default is 16.
+  }
+
+  \item{zeroRows}{
+    Logical. Whether to keep rows with zero standard deviation. Default is FALSE.
+  }
+
+  \item{usePCA}{
+    Logical. Whether to reduce dimensionality with PCA before computing metrics. Default is FALSE.
+  }
+
+  \item{nPCs}{
+    Integer. Number of principal components to use when \code{usePCA = TRUE}. Default is 50.
   }
 }
 \details{
@@ -75,8 +98,7 @@ QC_bootstrap(data_list,
 \value{
 %%  ~Describe the value returned
 %%  If it is a LIST, use
-  \item{means }{A dataframe containing the mean for each metric over the bootstrap runs, for biological and batch variables and their ratios}
-  \item{results }{The full results of the metrics run on each resampled dataset}
+  \item{result}{A list of bootstrap iteration results, each containing bio, batch, and ratio sub-lists for the evaluated metrics at each correction level.}
 %% ...
 }
 \references{
@@ -95,14 +117,16 @@ QC_bootstrap(data_list,
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-#Create a list of datasets to calculate the bootstrapped metrics on
+#Create a normalized data matrix to calculate the bootstrapped metrics on
 
-datalist = lapply(1:5, function(d) matrix(rnorm(100*1000,mean=0,sd=1), ncol=100, nrow=1000))
-biol.groups = sample(1:4, size = 100, replace = TRUE)
-batches = sample(1:2, size = 100, replace = TRUE)
+DataNorm = matrix(rnorm(10*100,mean=0,sd=1), ncol=10, nrow=100)
+biol.groups = sample(1:2, size = 10, replace = TRUE)
+batches = sample(1:2, size = 10, replace = TRUE)
 
-#calculate the bootstrapped metrics
-qcmetrics = QC_bootstrap(datalist, biol.groups, batches, plot = FALSE)
+#calculate the bootstrapped metrics (single iteration, not parallel, for illustration)
+\dontrun{
+qcmetrics = QC_bootstrap(DataNorm, biol.groups, batches, iters = 1, parallel = FALSE)
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory (show via RShowDoc("KEYWORDS")):
