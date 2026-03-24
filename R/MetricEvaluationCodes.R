@@ -166,7 +166,7 @@ QC_bootstrap = function(DataNorm, biol.groups, batches, method_names = NULL,
     for(d_idx in seq_along(levels)){
       p = levels[d_idx]
       if(dilute_samples == TRUE){
-        d_p <- ADS_A(correction, groups, p = p) # Assuming ADS_A is the helper for diluteSeries2
+        d_p <- ADS_A(correction, biol.groups, p = p) # Assuming ADS_A is the helper for diluteSeries2
       } else {
         d_p <- dilute_all(DataNorm, correction, p)
       }
