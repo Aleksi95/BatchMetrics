@@ -1,4 +1,5 @@
 exportPattern("^[[:alpha:]]+")
+importFrom("bapred", "kldist", "kldistTwo")
 importFrom("grDevices", "dev.off", "pdf", "png")
 importFrom("stats", "as.dist", "chisq.test", "cor", "cor.test", "cutree",
            "density", "dist", "hclust", "kmeans", "lm", "model.matrix", "na.omit",
